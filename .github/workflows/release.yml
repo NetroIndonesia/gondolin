@@ -179,9 +179,9 @@ jobs:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref }}
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/setup@v3
         with:
-          version: 8
+          install: false
 
       - uses: actions/setup-node@v4
         with:

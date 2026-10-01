@@ -12,18 +12,23 @@ concurrency:
 
 jobs:
   check:
-    name: Lint & Typecheck
+    name: Lint & Typecheck (node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lowest supported Node (package.json engines) and current CI default
+        node-version: ['22.19.0', '24']
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/setup@v3
         with:
-          version: 8
+          install: false
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -59,9 +64,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/setup@v3
         with:
-          version: 8
+          install: false
 
       - uses: actions/setup-node@v4
         with:
@@ -113,9 +118,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/setup@v3
         with:
-          version: 8
+          install: false
 
       - uses: actions/setup-node@v4
         with:
@@ -258,9 +263,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/setup@v3
         with:
-          version: 8
+          install: false
 
       - uses: actions/setup-node@v4
         with:
@@ -327,9 +332,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/setup@v3
         with:
-          version: 8
+          install: false
 
       - uses: actions/setup-node@v4
         with:
@@ -396,9 +401,9 @@ jobs:
   #   steps:
   #     - uses: actions/checkout@v4
   #
-  #     - uses: pnpm/action-setup@v2
+  #     - uses: pnpm/setup@v3
   #       with:
-  #         version: 8
+  #         install: false
   #
   #     - uses: actions/setup-node@v4
   #       with:

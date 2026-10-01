@@ -41,7 +41,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 # install Zig 0.16.0 for your Linux architecture
 ```
 
-- Node.js >= 23.6
+- Node.js >= 22.19
 
 > **Note:** Runtime validation is currently strongest on ARM64 (Apple Silicon, Linux aarch64).
 > Linux x86_64 is currently smoke-tested for `make krun-runner` in CI.

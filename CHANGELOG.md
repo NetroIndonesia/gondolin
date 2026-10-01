@@ -4,6 +4,8 @@ All notable changes to Gondolin are documented here.
 
 ## Unreleased
 
+- Lower the minimum supported Node.js version to 22.19.0 (previously 23.6.0).
+
 ## 0.12.0
 
 - Add `VM.getHostPid()` to allow callers to collect host-side process metrics of the VM runner. #114
