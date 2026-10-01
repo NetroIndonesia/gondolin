@@ -51,12 +51,17 @@
         "noTemplateCurlyInString": "off",
         "noAssignInExpressions": "off",
         "noFallthroughSwitchClause": "off"
+      },
+      "correctness": {
+        "useImportExtensions": "error"
       }
     }
   },
   "overrides": [
     {
-      "includes": ["host/src/sandbox/server.ts"],
+      "includes": [
+        "host/src/sandbox/server.ts"
+      ],
       "linter": {
         "rules": {
           "correctness": {
@@ -66,7 +71,9 @@
       }
     },
     {
-      "includes": ["host/test/**"],
+      "includes": [
+        "host/test/**"
+      ],
       "linter": {
         "rules": {
           "correctness": {
