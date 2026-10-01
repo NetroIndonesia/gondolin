@@ -101,7 +101,7 @@ clean:
 
 hooks:
 	@git config core.hooksPath .husky
-	@chmod +x .husky/pre-commit .husky/_/pre-commit .husky/_/h
+	@chmod +x .husky/pre-commit
 	@echo "Installed hooks (core.hooksPath=.husky)"
 
 libkrun:

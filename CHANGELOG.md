@@ -5,6 +5,7 @@ All notable changes to Gondolin are documented here.
 ## Unreleased
 
 - Lower the minimum supported Node.js version to 22.19.0 (previously 23.6.0).
+- Drop the generated `dist/src/index.cjs` shim; CommonJS consumers now load the ESM entrypoint directly through Node's `require(esm)` support.
 
 ## 0.12.0
 

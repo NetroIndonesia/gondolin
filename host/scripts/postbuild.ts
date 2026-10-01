@@ -59,15 +59,6 @@ export function copyGuestSources(
   }
 }
 
-function writeCjsEntrypoint(pkgRoot: string): void {
-  const entryPath = path.join(pkgRoot, "dist", "src", "index.cjs");
-  fs.mkdirSync(path.dirname(entryPath), { recursive: true });
-  fs.writeFileSync(
-    entryPath,
-    '"use strict";\nmodule.exports = require("./index.js");\n',
-  );
-}
-
 function rewriteDeclarationsInDir(dirPath: string): void {
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     const fullPath = path.join(dirPath, entry.name);
@@ -127,7 +118,6 @@ export function runPostbuild({
   const distRoot = path.join(pkgRoot, "dist");
   if (fs.existsSync(distRoot)) {
     rewriteDeclarationsInDir(distRoot);
-    writeCjsEntrypoint(pkgRoot);
   }
 
   return { guestSourceRoot };
