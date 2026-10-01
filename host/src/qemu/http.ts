@@ -876,7 +876,7 @@ export async function handleHttpDataWithWriter(
         },
         {
           highWaterMark: HTTP_STREAMING_REQUEST_BODY_HIGH_WATER_BYTES,
-          size: (chunk: Uint8Array) => chunk.byteLength,
+          size: (chunk?: Uint8Array) => chunk?.byteLength ?? 0,
         },
       );
 
