@@ -7,6 +7,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import * as child_process from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 
 import {
   SandboxController,
@@ -64,7 +65,7 @@ async function waitFor(
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (predicate()) return;
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await delay(10);
   }
   assert.equal(predicate(), true);
 }

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import * as qemuHttp from "../src/qemu/http.ts";
 import { QemuNetworkBackend } from "../src/qemu/net.ts";
@@ -92,7 +93,7 @@ async function waitForCondition(
     if (Date.now() - start > timeoutMs) {
       throw new Error(message);
     }
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
 }
 

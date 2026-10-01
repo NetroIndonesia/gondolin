@@ -4,6 +4,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { VM } from "../src/vm/core.ts";
 import { scheduleForceExit, shouldSkipVmTests } from "./helpers/vm-fixture.ts";
@@ -108,7 +109,7 @@ async function waitForGuestHttpServer(
       return;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await delay(50);
   }
 
   throw new Error(
@@ -259,7 +260,7 @@ test("ingress forwards full large fixed-length responses (issue #86)", {
       lastError = error instanceof Error ? error : new Error(String(error));
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await delay(50);
   }
 
   if (!response && lastError) {

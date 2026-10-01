@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { VM } from "../src/vm/core.ts";
 import { MemoryProvider } from "../src/vfs/node/index.ts";
@@ -438,7 +439,7 @@ for (const backend of backends) {
       } catch {
         // ingress gateway or guest server may still be starting
       }
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await delay(50);
     }
 
     if (status !== 200 || !/ingress-ok/.test(body)) {

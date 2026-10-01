@@ -32,6 +32,7 @@ import * as qemuWs from "../src/qemu/ws.ts";
 import { createHttpHooks } from "../src/http/hooks.ts";
 import { mitmLeafHasRequiredKeyIdentifiers } from "../src/mitm.ts";
 import { EventEmitter } from "node:events";
+import { setTimeout as delay } from "node:timers/promises";
 
 function makeBackend(
   options?: Partial<ConstructorParameters<typeof QemuNetworkBackend>[0]>,
@@ -837,7 +838,7 @@ test("qemu-net: expect-continue with custom onRequest rewrite is not rejected be
 
   for (let i = 0; i < 50; i += 1) {
     if (finished) break;
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
 
   assert.equal(fetchCalls, 1);
@@ -1529,7 +1530,7 @@ test("qemu-net: createHttpHooks onRequest keeps streaming uploads streaming", as
     },
   );
 
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await delay(10);
   assert.equal(fetchCalls, 1);
 
   assert.equal(finished, true);
@@ -1684,7 +1685,7 @@ test("qemu-net: streaming onRequest body rewrite drains remaining upload bytes",
 
   for (let i = 0; i < 50; i += 1) {
     if (fetchCalls > 0) break;
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
 
   assert.equal(fetchCalls, 1);
@@ -1703,7 +1704,7 @@ test("qemu-net: streaming onRequest body rewrite drains remaining upload bytes",
 
   for (let i = 0; i < 50; i += 1) {
     if (finished) break;
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
 
   assert.equal(finished, true);
@@ -1780,7 +1781,7 @@ test("qemu-net: streaming onRequest failure clears paused RX state", async () =>
 
   for (let i = 0; i < 50; i += 1) {
     if (backend.http.qemuRxPausedForHttpStreaming) break;
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
 
   assert.equal(backend.http.qemuRxPausedForHttpStreaming, true);
@@ -2231,7 +2232,7 @@ test("qemu-net: websocket upgrades are tunneled when enabled", async () => {
   });
 
   // Send a post-upgrade frame.
-  await new Promise((r) => setTimeout(r, 50));
+  await delay(50);
   await qemuHttp.handlePlainHttpData(
     backend,
     key,
@@ -2239,7 +2240,7 @@ test("qemu-net: websocket upgrades are tunneled when enabled", async () => {
     Buffer.from("ping"),
   );
 
-  await new Promise((r) => setTimeout(r, 50));
+  await delay(50);
 
   const out = Buffer.concat(writes).toString("utf8");
   assert.match(out, /^HTTP\/1\.1 101 /);
@@ -2343,7 +2344,7 @@ test("qemu-net: websocket upgrade prechecked request policy runs once", async ()
       },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await delay(50);
 
     assert.equal(requestPolicyCalls.count, 1);
     assert.match(Buffer.concat(writes).toString("utf8"), /^HTTP\/1\.1 101 /);
@@ -2460,7 +2461,7 @@ test("qemu-net: websocket upgrade preserves headers when onRequest hook is set",
       finish: () => {},
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await delay(50);
 
     const out = Buffer.concat(writes).toString("utf8");
 
@@ -3288,7 +3289,7 @@ test("qemu-net: tls context cache ttl does not immediately expire slow-to-create
   let created = 0;
   (backend as any).createTlsContext = async (_servername: string) => {
     created += 1;
-    await new Promise((r) => setTimeout(r, 150));
+    await delay(150);
     return tls.createSecureContext({});
   };
 
@@ -3316,7 +3317,7 @@ test("qemu-net: tls context cache enforces ttl", async () => {
   assert.equal(created, 1);
 
   // Let the entry expire.
-  await new Promise((r) => setTimeout(r, 80));
+  await delay(80);
 
   await (backend as any).getTlsContextAsync("ttl.example");
   assert.equal(created, 2);
@@ -4577,7 +4578,7 @@ test("qemu-net: http bridge limits concurrent upstream fetches", async () => {
         `timed out waiting for concurrency saturation (max=${maxActive})`,
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
 
   assert.equal(maxActive, 128);

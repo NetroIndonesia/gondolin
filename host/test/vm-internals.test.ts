@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { MemoryProvider, type VirtualProvider } from "../src/vfs/node/index.ts";
 import { createExecSession } from "../src/exec.ts";
@@ -441,7 +442,7 @@ test("vm internals: timed out startup does not run late session setup", async ()
   (vm as any).ensureConnection = async () => {};
   (vm as any).ensureRunning = async () => {};
   (vm as any).ensureVfsReady = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    await delay(30);
   };
   (vm as any).ensureSessionIpc = async () => {
     ensureSessionIpcCalls += 1;
@@ -452,7 +453,7 @@ test("vm internals: timed out startup does not run late session setup", async ()
       () => vm.start(),
       /vm startup timed out after 10ms while waiting for guest readiness/,
     );
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await delay(60);
     assert.equal(ensureSessionIpcCalls, 0);
   } finally {
     await vm.close();
@@ -488,7 +489,7 @@ test("vm internals: stale timeout cleanup does not close newer startup", async (
     (vm as any).ensureRunning = async () => {};
     await vm.start();
 
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    await delay(30);
     assert.equal(staleCloseCalls, 0);
   } finally {
     (vm as any).close = originalClose;

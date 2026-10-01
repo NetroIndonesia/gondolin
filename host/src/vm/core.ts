@@ -5,6 +5,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import type { Duplex, Readable } from "node:stream";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { AsyncSingleflight } from "../utils/async.ts";
 
@@ -905,7 +906,7 @@ fi
         break;
       } catch (err) {
         lastErr = err;
-        await new Promise((r) => setTimeout(r, 150));
+        await delay(150);
       } finally {
         probe?.destroy();
       }

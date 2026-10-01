@@ -667,12 +667,11 @@ export function createExecSession(
     windowBytes?: number;
   },
 ): ExecSession {
-  let resolve!: (result: ExecResult) => void;
-  let reject!: (error: Error) => void;
-  const resultPromise = new Promise<ExecResult>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
+  const {
+    promise: resultPromise,
+    resolve,
+    reject,
+  } = Promise.withResolvers<ExecResult>();
 
   const windowBytes = resolveWindowBytes(options.windowBytes);
 

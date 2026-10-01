@@ -138,12 +138,11 @@ export class SandboxServerOps {
         ? Math.trunc(options.highWaterMark)
         : undefined;
 
-    let resolveDone!: () => void;
-    let rejectDone!: (err: Error) => void;
-    const done = new Promise<void>((resolve, reject) => {
-      resolveDone = resolve;
-      rejectDone = reject;
-    });
+    const {
+      promise: done,
+      resolve: resolveDone,
+      reject: rejectDone,
+    } = Promise.withResolvers<void>();
     void done.catch(() => {});
 
     const stream = new PassThrough(
@@ -250,12 +249,11 @@ export class SandboxServerOps {
 
     const id = this.allocateFileOpId();
 
-    let resolveDone!: () => void;
-    let rejectDone!: (err: Error) => void;
-    const done = new Promise<void>((resolve, reject) => {
-      resolveDone = resolve;
-      rejectDone = reject;
-    });
+    const {
+      promise: done,
+      resolve: resolveDone,
+      reject: rejectDone,
+    } = Promise.withResolvers<void>();
 
     this.fileOps.set(id, {
       kind: "write",
@@ -326,12 +324,11 @@ export class SandboxServerOps {
 
     const id = this.allocateFileOpId();
 
-    let resolveDone!: () => void;
-    let rejectDone!: (err: Error) => void;
-    const done = new Promise<void>((resolve, reject) => {
-      resolveDone = resolve;
-      rejectDone = reject;
-    });
+    const {
+      promise: done,
+      resolve: resolveDone,
+      reject: rejectDone,
+    } = Promise.withResolvers<void>();
 
     this.fileOps.set(id, {
       kind: "delete",

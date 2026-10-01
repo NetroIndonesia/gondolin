@@ -7,6 +7,7 @@ import path from "node:path";
 import readline from "node:readline/promises";
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { VmCheckpoint } from "../src/checkpoint.ts";
 import { gondolinCacheDir } from "../src/cache.ts";
@@ -118,7 +119,7 @@ async function waitForCheckpointReady(
       // keep polling
     }
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    await delay(50);
   }
 
   try {
@@ -1914,10 +1915,8 @@ async function runBash(argv: string[]) {
 
     const ESCAPE_BYTE = 0x1d; // Ctrl-]
 
-    let resolveEscape!: () => void;
-    const escapePromise = new Promise<void>((resolve) => {
-      resolveEscape = resolve;
-    });
+    const { promise: escapePromise, resolve: resolveEscape } =
+      Promise.withResolvers<void>();
 
     // This intentionally shares logic with ExecProcess.attach() via attachTty()
     // to minimize drift while still allowing the CLI-local Ctrl-] escape hatch.
