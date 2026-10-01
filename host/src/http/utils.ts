@@ -13,6 +13,7 @@ import type {
   InternalHttpRequest,
   InternalHttpResponseHeaders,
 } from "../internal/http-types.ts";
+import { isInternalIpAddress } from "../utils/ip.ts";
 
 export class HttpRequestBlockedError extends Error {
   status: number;
@@ -534,6 +535,43 @@ function evictSharedDispatchersIfNeeded(backend: QemuNetworkBackend) {
   }
 }
 
+/**
+ * Destination ip policy used when `httpHooks.isIpAllowed` is not provided.
+ *
+ * Blocks loopback, private, link-local and other internal ranges so that a
+ * guest cannot reach host-local services or cloud metadata endpoints unless
+ * the embedder explicitly opts in via a custom `isIpAllowed`.
+ */
+export function defaultIsIpAllowed(info: HttpIpAllowInfo): boolean {
+  return !isInternalIpAddress(info.ip);
+}
+
+export type IpPolicy = {
+  /** effective destination ip policy callback */
+  isIpAllowed: NonNullable<HttpHooks["isIpAllowed"]>;
+  /** whether the built-in internal-range policy is in effect */
+  isDefault: boolean;
+};
+
+/**
+ * Resolve the effective destination ip policy for a backend.
+ *
+ * The hooks object is never copied (class instances keep their prototype
+ * methods) and a custom `isIpAllowed` is invoked with the hooks object as
+ * `this`.
+ */
+export function getIpPolicy(backend: QemuNetworkBackend): IpPolicy {
+  const hooks = backend.options.httpHooks;
+  const custom = hooks?.isIpAllowed;
+  if (custom) {
+    return {
+      isIpAllowed: (info) => custom.call(hooks, info),
+      isDefault: false,
+    };
+  }
+  return { isIpAllowed: defaultIsIpAllowed, isDefault: true };
+}
+
 export function getCheckedDispatcher(
   backend: QemuNetworkBackend,
   info: {
@@ -541,11 +579,8 @@ export function getCheckedDispatcher(
     port: number;
     protocol: "http" | "https";
   },
-): Agent | null {
-  const isIpAllowed = backend.options.httpHooks?.isIpAllowed as
-    | HttpHooks["isIpAllowed"]
-    | undefined;
-  if (!isIpAllowed) return null;
+): Agent {
+  const { isIpAllowed } = getIpPolicy(backend);
 
   pruneSharedDispatchers(backend);
 

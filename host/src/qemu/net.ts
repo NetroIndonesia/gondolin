@@ -96,6 +96,11 @@ const DEFAULT_SYNTHETIC_DNS_HOST_MAPPING: SyntheticDnsHostMappingMode =
 
 const DEFAULT_MAX_CONCURRENT_HTTP_REQUESTS = 128;
 
+// Upstream UDP (dns) sessions are closed after this much inactivity.
+const DEFAULT_UDP_SESSION_IDLE_TIMEOUT_MS = 10_000;
+// Hard cap on concurrently open upstream UDP sockets per backend.
+const DEFAULT_MAX_UDP_SESSIONS = 128;
+
 import {
   NetworkStack,
   type TcpCloseMessage,
@@ -121,6 +126,9 @@ type UdpSession = {
   upstreamIP: string;
   /** upstream destination port used by the host */
   upstreamPort: number;
+
+  /** inactivity timer closing the upstream socket */
+  idleTimer: NodeJS.Timeout | null;
 };
 
 class GuestTlsStream extends Duplex {
@@ -300,6 +308,12 @@ export type QemuNetworkOptions = {
   /** @internal udp socket factory (tests) */
   udpSocketFactory?: () => dgram.Socket;
 
+  /** @internal upstream udp session idle timeout in `ms` (tests) */
+  udpSessionIdleTimeoutMs?: number;
+
+  /** @internal max concurrently open upstream udp sessions (tests) */
+  maxUdpSessions?: number;
+
   /** @internal dns lookup implementation for hostname resolution tests */
   dnsLookup?: (
     hostname: string,
@@ -345,6 +359,8 @@ export class QemuNetworkBackend extends EventEmitter {
   stack: NetworkStack | null = null;
 
   private readonly udpSessions = new Map<string, UdpSession>();
+  private readonly udpSessionIdleTimeoutMs: number;
+  private readonly maxUdpSessions: number;
   private guestActivityActive = false;
 
   /** @internal */
@@ -396,6 +412,12 @@ export class QemuNetworkBackend extends EventEmitter {
   constructor(options: QemuNetworkOptions) {
     super();
     this.options = options;
+    this.udpSessionIdleTimeoutMs =
+      options.udpSessionIdleTimeoutMs ?? DEFAULT_UDP_SESSION_IDLE_TIMEOUT_MS;
+    this.maxUdpSessions = Math.max(
+      1,
+      options.maxUdpSessions ?? DEFAULT_MAX_UDP_SESSIONS,
+    );
 
     if (options.debug) {
       this.eventLoopDelay = monitorEventLoopDelay({ resolution: 10 });
@@ -711,13 +733,47 @@ export class QemuNetworkBackend extends EventEmitter {
     }
   }
 
-  private cleanupSessions() {
-    for (const session of this.udpSessions.values()) {
-      try {
-        session.socket.close();
-      } catch {
-        // ignore
+  private closeUdpSession(key: string, session: UdpSession) {
+    if (this.udpSessions.get(key) === session) {
+      this.udpSessions.delete(key);
+    }
+    if (session.idleTimer) {
+      clearTimeout(session.idleTimer);
+      session.idleTimer = null;
+    }
+    try {
+      session.socket.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  private touchUdpSession(key: string, session: UdpSession) {
+    if (this.udpSessions.get(key) !== session) return;
+
+    // Keep map insertion order in LRU order so eviction drops the stalest session.
+    this.udpSessions.delete(key);
+    this.udpSessions.set(key, session);
+
+    if (session.idleTimer) {
+      session.idleTimer.refresh();
+      return;
+    }
+    session.idleTimer = setTimeout(() => {
+      session.idleTimer = null;
+      if (this.options.debug) {
+        this.emitDebug(
+          `udp session idle ${session.srcIP}:${session.srcPort} -> ${session.dstIP}:${session.dstPort}`,
+        );
       }
+      this.closeUdpSession(key, session);
+    }, this.udpSessionIdleTimeoutMs);
+    session.idleTimer.unref();
+  }
+
+  private cleanupSessions() {
+    for (const [key, session] of Array.from(this.udpSessions)) {
+      this.closeUdpSession(key, session);
     }
     this.udpSessions.clear();
 
@@ -816,6 +872,17 @@ export class QemuNetworkBackend extends EventEmitter {
 
     let session = this.udpSessions.get(message.key);
     if (!session) {
+      while (this.udpSessions.size >= this.maxUdpSessions) {
+        const oldest = this.udpSessions.entries().next().value;
+        if (!oldest) break;
+        if (this.options.debug) {
+          this.emitDebug(
+            `udp session evicted ${oldest[1].srcIP}:${oldest[1].srcPort} -> ${oldest[1].dstIP}:${oldest[1].dstPort}`,
+          );
+        }
+        this.closeUdpSession(oldest[0], oldest[1]);
+      }
+
       const socket = this.options.udpSocketFactory
         ? this.options.udpSocketFactory()
         : dgram.createSocket("udp4");
@@ -834,35 +901,43 @@ export class QemuNetworkBackend extends EventEmitter {
         dstPort: message.dstPort,
         upstreamIP,
         upstreamPort,
+        idleTimer: null,
       };
       this.udpSessions.set(message.key, session);
+      const key = message.key;
+      const created = session;
 
       socket.on("message", (data, rinfo) => {
         if (this.options.debug) {
           const via =
             this.dnsMode === "trusted"
-              ? ` via ${session!.upstreamIP}:${session!.upstreamPort}`
+              ? ` via ${created.upstreamIP}:${created.upstreamPort}`
               : "";
           this.emitDebug(
-            `dns recv ${rinfo.address}:${rinfo.port} -> ${session!.srcIP}:${session!.srcPort} (${data.length} bytes)${via}`,
+            `dns recv ${rinfo.address}:${rinfo.port} -> ${created.srcIP}:${created.srcPort} (${data.length} bytes)${via}`,
           );
         }
+
+        this.touchUdpSession(key, created);
 
         // Reply to the guest as if it came from the original destination IP.
         this.stack?.handleUdpResponse({
           data: Buffer.from(data),
-          srcIP: session!.srcIP,
-          srcPort: session!.srcPort,
-          dstIP: session!.dstIP,
-          dstPort: session!.dstPort,
+          srcIP: created.srcIP,
+          srcPort: created.srcPort,
+          dstIP: created.dstIP,
+          dstPort: created.dstPort,
         });
         this.flush();
       });
 
       socket.on("error", (err) => {
+        this.closeUdpSession(key, created);
         this.emit("error", err);
       });
     }
+
+    this.touchUdpSession(message.key, session);
 
     if (this.options.debug) {
       const via =

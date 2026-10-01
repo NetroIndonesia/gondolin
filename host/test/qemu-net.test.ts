@@ -42,6 +42,8 @@ function makeBackend(
       os.tmpdir(),
       `gondolin-net-test-${process.pid}-${crypto.randomUUID()}.sock`,
     ),
+    // Keep tests hermetic: the default ip policy resolves hostnames on the host.
+    dnsLookup: dnsLookupStub([{ address: "203.0.113.10", family: 4 }]),
     ...options,
   });
 }
@@ -595,6 +597,228 @@ test("qemu-net: resolveHostname picks first allowed DNS answer", async () => {
 
   assert.equal(resolved.address, "127.0.0.1");
   assert.equal(resolved.family, 4);
+});
+
+test("qemu-net: default ip policy blocks internal ranges without httpHooks", async () => {
+  for (const ip of [
+    "127.0.0.1",
+    "10.1.2.3",
+    "169.254.169.254",
+    "192.168.1.1",
+    "::1",
+    "fe80::1",
+    "::ffff:127.0.0.1",
+  ]) {
+    const backend = makeBackend({
+      dnsLookup: dnsLookupStub([
+        { address: ip, family: net.isIP(ip) as 4 | 6 },
+      ]),
+    });
+    await assert.rejects(
+      qemuHttp.resolveHostname(backend, "internal.example", {
+        protocol: "http",
+        port: 80,
+      }),
+      (err: unknown) => err instanceof HttpRequestBlockedError,
+      `expected ${ip} to be blocked`,
+    );
+    await assert.rejects(
+      qemuHttp.resolveHostname(backend, ip, { protocol: "http", port: 80 }),
+      (err: unknown) => err instanceof HttpRequestBlockedError,
+      `expected literal ${ip} to be blocked`,
+    );
+  }
+
+  const backend = makeBackend({
+    dnsLookup: dnsLookupStub([
+      { address: "127.0.0.1", family: 4 },
+      { address: "203.0.113.7", family: 4 },
+    ]),
+  });
+  const resolved = await qemuHttp.resolveHostname(backend, "example.com", {
+    protocol: "https",
+    port: 443,
+  });
+  assert.equal(resolved.address, "203.0.113.7");
+  assert.ok(
+    getCheckedDispatcher(backend, {
+      hostname: "example.com",
+      port: 443,
+      protocol: "https",
+    }),
+    "default policy should install a guarded dispatcher",
+  );
+  closeSharedDispatchers(backend);
+});
+
+test("qemu-net: default ip policy applies when httpHooks omit isIpAllowed", async () => {
+  const onRequest = async () => {};
+  const httpHooks = { onRequest };
+  const backend = makeBackend({
+    httpHooks,
+    dnsLookup: dnsLookupStub([{ address: "169.254.169.254", family: 4 }]),
+  });
+  // Hooks are used as passed, never copied.
+  assert.equal(backend.options.httpHooks, httpHooks);
+  await assert.rejects(
+    qemuHttp.resolveHostname(backend, "metadata.example", {
+      protocol: "http",
+      port: 80,
+    }),
+    (err: unknown) =>
+      err instanceof HttpRequestBlockedError &&
+      err.status === 403 &&
+      /provide httpHooks\.isIpAllowed/.test(err.message) &&
+      !err.message.includes("169.254.169.254"),
+  );
+});
+
+test("qemu-net: class-based httpHooks keep prototype methods with default ip policy", async () => {
+  class Hooks {
+    requestPolicyCalls = 0;
+    onRequestCalls = 0;
+    isRequestAllowed(_request: Request) {
+      this.requestPolicyCalls += 1;
+      return true;
+    }
+    onRequest(request: Request) {
+      this.onRequestCalls += 1;
+      return request;
+    }
+  }
+  const hooks = new Hooks();
+  let fetchCalls = 0;
+  const backend = makeBackend({
+    httpHooks: hooks,
+    dnsLookup: dnsLookupStub([{ address: "127.0.0.1", family: 4 }]),
+    fetch: (async () => {
+      fetchCalls += 1;
+      return new Response("upstream");
+    }) as any,
+  });
+
+  const writes: Buffer[] = [];
+  await qemuHttp.handleHttpDataWithWriter(
+    backend,
+    "key",
+    { http: undefined } as any,
+    Buffer.from("GET / HTTP/1.1\r\nHost: internal.example\r\n\r\n"),
+    {
+      scheme: "http",
+      write: (chunk: Buffer) => writes.push(Buffer.from(chunk)),
+      finish: () => {},
+    },
+  );
+
+  assert.equal(hooks.onRequestCalls, 1);
+  assert.ok(hooks.requestPolicyCalls >= 1);
+  assert.equal(fetchCalls, 0);
+  assert.match(Buffer.concat(writes).toString("utf8"), /^HTTP\/1\.1 403 /);
+});
+
+test("qemu-net: class-based isIpAllowed is invoked with hooks as this", async () => {
+  class Hooks {
+    allowed = new Set(["10.0.0.5"]);
+    seen: string[] = [];
+    isIpAllowed(info: { ip: string }) {
+      this.seen.push(info.ip);
+      return this.allowed.has(info.ip);
+    }
+  }
+  const hooks = new Hooks();
+  const backend = makeBackend({
+    httpHooks: hooks,
+    dnsLookup: dnsLookupStub([
+      { address: "10.0.0.4", family: 4 },
+      { address: "10.0.0.5", family: 4 },
+    ]),
+  });
+
+  const resolved = await qemuHttp.resolveHostname(backend, "corp.example", {
+    protocol: "https",
+    port: 443,
+  });
+  assert.equal(resolved.address, "10.0.0.5");
+  assert.deepEqual(hooks.seen, ["10.0.0.4", "10.0.0.5"]);
+});
+
+test("qemu-net: host dns lookup failure returns 502 with reason", async () => {
+  let fetchCalls = 0;
+  const backend = makeBackend({
+    dnsLookup: (_hostname: string, _options: any, cb: any) => {
+      const err = new Error("getaddrinfo ENOTFOUND unresolvable.example");
+      (err as NodeJS.ErrnoException).code = "ENOTFOUND";
+      cb(err, []);
+    },
+    fetch: (async () => {
+      fetchCalls += 1;
+      return new Response("upstream");
+    }) as any,
+  });
+  const errors: Error[] = [];
+  backend.on("error", (err) => errors.push(err));
+
+  const writes: Buffer[] = [];
+  await qemuHttp.handleHttpDataWithWriter(
+    backend,
+    "key",
+    { http: undefined } as any,
+    Buffer.from("GET / HTTP/1.1\r\nHost: unresolvable.example\r\n\r\n"),
+    {
+      scheme: "http",
+      write: (chunk: Buffer) => writes.push(Buffer.from(chunk)),
+      finish: () => {},
+    },
+  );
+
+  const output = Buffer.concat(writes).toString("utf8");
+  assert.match(output, /^HTTP\/1\.1 502 Bad Gateway/);
+  assert.match(
+    output,
+    /host dns lookup failed for unresolvable\.example \(ENOTFOUND\)/,
+  );
+  assert.equal(fetchCalls, 0);
+  assert.deepEqual(errors, []);
+});
+
+test("qemu-net: guest http request to host loopback is blocked without httpHooks", async () => {
+  let upstreamRequests = 0;
+  const server = http.createServer((_req, res) => {
+    upstreamRequests += 1;
+    res.end("host-local secret");
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as net.AddressInfo;
+
+  try {
+    const backend = makeBackend();
+    const writes: Buffer[] = [];
+    const session: any = { http: undefined };
+    let finished = false;
+
+    await qemuHttp.handleHttpDataWithWriter(
+      backend,
+      "key",
+      session,
+      Buffer.from(`GET / HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n\r\n`),
+      {
+        scheme: "http",
+        write: (chunk: Buffer) => writes.push(Buffer.from(chunk)),
+        finish: () => {
+          finished = true;
+        },
+      },
+    );
+
+    assert.equal(finished, true);
+    assert.equal(upstreamRequests, 0);
+    const output = Buffer.concat(writes).toString("utf8");
+    assert.match(output, /^HTTP\/1\.1 403 /);
+    assert.match(output, /blocked by policy: 127\.0\.0\.1 \(internal address/);
+    closeSharedDispatchers(backend);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
 
 test("qemu-net: handleHttpDataWithWriter sends 100-continue when body is pending", async () => {
@@ -3410,15 +3634,109 @@ function buildQueryA(name: string, id = 0x1234): Buffer {
 
 class FakeUdpSocket extends EventEmitter {
   lastSend: { buf: Buffer; port: number; address: string } | null = null;
+  closed = false;
 
   send(buf: Buffer, port: number, address: string) {
     this.lastSend = { buf: Buffer.from(buf), port, address };
   }
 
   close() {
-    // no-op
+    this.closed = true;
   }
 }
+
+function sendTrustedDnsQuery(backend: QemuNetworkBackend, srcPort: number) {
+  (backend as any).handleUdpSend({
+    key: `udp-${srcPort}`,
+    srcIP: "192.168.127.3",
+    srcPort,
+    dstIP: "192.168.127.1",
+    dstPort: 53,
+    payload: buildQueryA("example.com", srcPort & 0xffff),
+  });
+}
+
+test("qemu-net: dns trusted mode closes idle upstream udp sockets", async () => {
+  const sockets: FakeUdpSocket[] = [];
+  const backend = makeBackend({
+    dns: { mode: "trusted", trustedServers: ["1.1.1.1"] },
+    udpSocketFactory: () => {
+      const socket = new FakeUdpSocket();
+      sockets.push(socket);
+      return socket as any;
+    },
+    udpSessionIdleTimeoutMs: 20,
+  });
+  (backend as any).stack = { handleUdpResponse: () => {} };
+
+  sendTrustedDnsQuery(backend, 41000);
+  sendTrustedDnsQuery(backend, 41000);
+  assert.equal(sockets.length, 1);
+  assert.equal((backend as any).udpSessions.size, 1);
+
+  await delay(80);
+
+  assert.equal(sockets[0]!.closed, true);
+  assert.equal((backend as any).udpSessions.size, 0);
+
+  // A later query on the same flow opens a fresh socket.
+  sendTrustedDnsQuery(backend, 41000);
+  assert.equal(sockets.length, 2);
+  (backend as any).cleanupSessions();
+  assert.equal(sockets[1]!.closed, true);
+});
+
+test("qemu-net: dns trusted mode caps concurrently open udp sockets", () => {
+  const sockets: FakeUdpSocket[] = [];
+  const backend = makeBackend({
+    dns: { mode: "trusted", trustedServers: ["1.1.1.1"] },
+    udpSocketFactory: () => {
+      const socket = new FakeUdpSocket();
+      sockets.push(socket);
+      return socket as any;
+    },
+    maxUdpSessions: 4,
+  });
+  (backend as any).stack = { handleUdpResponse: () => {} };
+
+  for (let port = 42000; port < 42010; port += 1) {
+    sendTrustedDnsQuery(backend, port);
+  }
+
+  assert.equal(sockets.length, 10);
+  assert.equal((backend as any).udpSessions.size, 4);
+  assert.equal(sockets.filter((socket) => !socket.closed).length, 4);
+  // Oldest sessions are evicted first.
+  assert.deepEqual(
+    sockets.map((socket) => socket.closed),
+    [true, true, true, true, true, true, false, false, false, false],
+  );
+
+  (backend as any).cleanupSessions();
+  assert.ok(sockets.every((socket) => socket.closed));
+});
+
+test("qemu-net: dns trusted mode closes udp session on socket error", () => {
+  const sockets: FakeUdpSocket[] = [];
+  const backend = makeBackend({
+    dns: { mode: "trusted", trustedServers: ["1.1.1.1"] },
+    udpSocketFactory: () => {
+      const socket = new FakeUdpSocket();
+      sockets.push(socket);
+      return socket as any;
+    },
+  });
+  (backend as any).stack = { handleUdpResponse: () => {} };
+  const errors: Error[] = [];
+  backend.on("error", (err) => errors.push(err));
+
+  sendTrustedDnsQuery(backend, 43000);
+  sockets[0]!.emit("error", new Error("boom"));
+
+  assert.equal(errors.length, 1);
+  assert.equal(sockets[0]!.closed, true);
+  assert.equal((backend as any).udpSessions.size, 0);
+});
 
 test("qemu-net: dns trusted mode rewrites upstream resolver and preserves guest dst ip", () => {
   const fake = new FakeUdpSocket();

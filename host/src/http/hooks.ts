@@ -1,12 +1,11 @@
 import crypto from "node:crypto";
-import net from "node:net";
 
 import {
   ON_REQUEST_EARLY_POLICY_SAFE,
   type HttpHooks,
 } from "../qemu/contracts.ts";
 import { HttpRequestBlockedError } from "./utils.ts";
-import { extractIPv4Mapped, parseIPv6Hextets } from "../utils/ip.ts";
+import { isInternalIpAddress } from "../utils/ip.ts";
 import { matchesAnyHost, normalizeHostnamePattern } from "../host/patterns.ts";
 
 export type SecretDefinition = {
@@ -338,7 +337,7 @@ export function createHttpHooks(
 
       if (
         blockInternalRanges &&
-        isInternalAddress(info.ip) &&
+        isInternalIpAddress(info.ip) &&
         !matchesAnyHost(info.hostname, allowedInternalHosts)
       ) {
         return false;
@@ -1106,49 +1105,6 @@ function assertSecretAllowedForHost(
   throw new HttpRequestBlockedError(
     `secret ${entry.name} not allowed for host: ${hostname || "unknown"}`,
   );
-}
-
-function isInternalAddress(ip: string): boolean {
-  const family = net.isIP(ip);
-  if (family === 4) return isPrivateIPv4(ip);
-  if (family === 6) return isPrivateIPv6(ip);
-  return false;
-}
-
-function isPrivateIPv4(ip: string): boolean {
-  const octets = ip.split(".").map((part) => Number(part));
-  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part))) {
-    return false;
-  }
-
-  const [a, b] = octets;
-  if (a === 0) return true;
-  if (a === 10) return true;
-  if (a === 127) return true;
-  if (a === 169 && b === 254) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;
-  if (a === 255) return true;
-  return false;
-}
-
-function isPrivateIPv6(ip: string): boolean {
-  const hextets = parseIPv6Hextets(ip);
-  if (!hextets) return false;
-
-  const isAllZero = hextets.every((value) => value === 0);
-  const isLoopback =
-    hextets.slice(0, 7).every((value) => value === 0) && hextets[7] === 1;
-  if (isAllZero || isLoopback) return true;
-
-  if ((hextets[0] & 0xfe00) === 0xfc00) return true;
-  if ((hextets[0] & 0xffc0) === 0xfe80) return true;
-
-  const mapped = extractIPv4Mapped(hextets);
-  if (mapped && isPrivateIPv4(mapped)) return true;
-
-  return false;
 }
 
 function stripBase64Padding(value: string): string {

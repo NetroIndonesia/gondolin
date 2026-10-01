@@ -4,6 +4,8 @@ All notable changes to Gondolin are documented here.
 
 ## Unreleased
 
+- Block guest HTTP/TLS egress to loopback, private, link-local and other internal address ranges by default, even when no `httpHooks` (or no `httpHooks.isIpAllowed`) are configured.  Previously VMs created without hooks could reach host-local services and cloud metadata endpoints.  Provide a custom `isIpAllowed` to opt out.
+- Close idle upstream UDP sockets in `trusted` and `open` DNS modes and cap the number of concurrently open ones, fixing a host file descriptor leak in long-running VMs.
 - Lower the minimum supported Node.js version to 22.19.0 (previously 23.6.0).
 - Drop the generated `dist/src/index.cjs` shim; CommonJS consumers now load the ESM entrypoint directly through Node's `require(esm)` support.
 
