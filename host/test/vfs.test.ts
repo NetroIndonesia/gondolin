@@ -24,7 +24,7 @@ const rwProvider = new MemoryProvider();
 const blockedEntries: string[] = [];
 const sharedVmKey = "vfs-shared";
 const sharedVmOptions = {
-  server: { console: "none" },
+  sandbox: { console: "none" as const },
   vfs: {
     mounts: {
       "/": rootProvider,
@@ -58,7 +58,7 @@ const fuseHookEvents: Array<{
 }> = [];
 const fuseVmKey = "vfs-fuse-e2e";
 const fuseVmOptions = {
-  server: { console: "none" },
+  sandbox: { console: "none" as const },
   vfs: {
     mounts: {
       "/": fuseProvider,
@@ -87,7 +87,7 @@ test.after(async () => {
   scheduleForceExit();
 });
 
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
   let timer: NodeJS.Timeout | null = null;
   const timeout = new Promise<T>((_, reject) => {
     timer = setTimeout(() => {

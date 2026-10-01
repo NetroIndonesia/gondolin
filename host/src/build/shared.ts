@@ -226,7 +226,7 @@ export function ensureHostDistBuilt(
   }
 
   const tsconfigPath = path.join(hostPkgRoot, "tsconfig.build.json");
-  const postbuildPath = path.join(hostPkgRoot, "scripts", "postbuild.mjs");
+  const postbuildPath = path.join(hostPkgRoot, "scripts", "postbuild.ts");
   const tscPath = path.join(
     hostPkgRoot,
     "node_modules",

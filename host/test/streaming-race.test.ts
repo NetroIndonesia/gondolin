@@ -107,7 +107,7 @@ async function runStreamingUpload(options: {
   let fetchBodyLen = 0;
   let dnsLookupCalls = 0;
 
-  let releaseDns: (() => void) | null = null;
+  let releaseDns = null as (() => void) | null;
   const dnsGate =
     options.gateDnsPrecheck === true
       ? new Promise<void>((resolve) => {

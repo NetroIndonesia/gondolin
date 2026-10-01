@@ -38,7 +38,7 @@ test(
 
       const pid = vm.getHostPid();
       assert.equal(typeof pid, "number");
-      assert.ok(pid > 0, "expected a positive host pid");
+      assert.ok(pid !== null && pid > 0, "expected a positive host pid");
 
       const stats = readPsStats(pid);
       console.log(`ps stats for VM host pid ${pid}:\n${stats}`);

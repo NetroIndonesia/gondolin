@@ -5,7 +5,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findGuestSourceRoot, runPostbuild } from "../scripts/postbuild.mjs";
+import { findGuestSourceRoot, runPostbuild } from "../scripts/postbuild.ts";
 
 function makeHostPackage(root: string): string {
   const pkgRoot = path.join(root, "host");

@@ -24,6 +24,7 @@ function makeResolvedOptions(
     virtioSocketPath: "/tmp/gondolin-test-virtio.sock",
     virtioFsSocketPath: "/tmp/gondolin-test-virtiofs.sock",
     virtioSshSocketPath: "/tmp/gondolin-test-virtiossh.sock",
+    virtioIngressSocketPath: "/tmp/gondolin-test-virtioingress.sock",
     netSocketPath: "/tmp/gondolin-test-net.sock",
     netMac: "02:00:00:00:00:01",
     netEnabled: false,
@@ -70,7 +71,7 @@ function makeClient(): { client: any; captured: Captured } {
 
 function execMessage(id: number) {
   return {
-    type: "exec",
+    type: "exec" as const,
     id,
     cmd: "/bin/sh",
     argv: ["-lc", "echo hi"],

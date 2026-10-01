@@ -36,7 +36,7 @@ test(
   { skip: skipVmTests, timeout: timeoutMs },
   async () => {
     let base: VM | null = null;
-    let checkpoint: any = null;
+    let checkpoint: VmCheckpoint | null = null;
     let checkpointPath: string | null = null;
     let clone1: VM | null = null;
     let clone2: VM | null = null;
@@ -75,7 +75,7 @@ test(
       checkpoint = VmCheckpoint.load(checkpointPath);
 
       // Resume 1 sees the base file
-      clone1 = await checkpoint.resume({
+      clone1 = await checkpoint.resume<VM>({
         vfs: null,
         sandbox: {
           console: "none",
@@ -96,7 +96,7 @@ test(
       clone1 = null;
 
       // Resume 2 should not see clone1's change
-      clone2 = await checkpoint.resume({
+      clone2 = await checkpoint.resume<VM>({
         vfs: null,
         sandbox: {
           console: "none",
@@ -229,7 +229,7 @@ test(
       assert.equal(backing1, expectedA);
 
       // Resume while pointing to dirB and ensure resume updates the backing path.
-      resumed = await checkpoint.resume({
+      resumed = await checkpoint.resume<VM>({
         autoStart: false,
         vfs: null,
         sandbox: {
@@ -305,7 +305,7 @@ test(
         ? path.resolve(initialBacking)
         : path.resolve(path.dirname(checkpointPath), initialBacking);
 
-      resumed = await checkpoint.resume({
+      resumed = await checkpoint.resume<VM>({
         vfs: null,
         sandbox: {
           console: "none",
@@ -336,7 +336,7 @@ test(
       assert.equal(backingAbs, initialBackingAbs);
       assert.notEqual(backingAbs, path.resolve(checkpointPath));
 
-      resumedAgain = await checkpoint.resume({
+      resumedAgain = await checkpoint.resume<VM>({
         vfs: null,
         sandbox: {
           console: "none",
@@ -429,7 +429,7 @@ test(
         return;
       }
 
-      resumed = await checkpoint.resume({
+      resumed = await checkpoint.resume<VM>({
         vfs: null,
         sandbox: {
           vmm: "krun",
@@ -499,7 +499,7 @@ test(
       assert.equal(metadata.createdWithVmm, "krun");
       assert.ok(metadata.compatibleVmm?.includes("qemu"));
 
-      resumed = await checkpoint.resume({
+      resumed = await checkpoint.resume<VM>({
         vfs: null,
         sandbox: {
           vmm: "qemu",

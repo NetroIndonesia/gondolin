@@ -102,7 +102,7 @@ test("IngressGateway hooks: onRequest can rewrite target and headers", async () 
   const listeners = new GondolinListeners(new MemoryProvider());
   listeners.setRoutes([{ prefix: "/", port: 1234, stripPrefix: true }]);
 
-  let upstream: CaptureDuplex | null = null;
+  let upstream = null as CaptureDuplex | null;
   const sandbox = {
     openIngressStream: async () => {
       upstream = new CaptureDuplex();

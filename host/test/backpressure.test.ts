@@ -12,7 +12,7 @@ const skipVmTests = shouldSkipVmTests();
 const timeoutMs = Number(process.env.WS_TIMEOUT ?? 60000);
 const vmKey = "exec-backpressure";
 const vmOptions = {
-  server: { console: "none" },
+  sandbox: { console: "none" as const },
 };
 
 test.after(async () => {
@@ -26,7 +26,7 @@ function makeSpamCommand(lines: number) {
     "/bin/sh",
     "-lc",
     `for i in $(seq 1 ${lines}); do echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; done`,
-  ] as const;
+  ];
 }
 
 test(

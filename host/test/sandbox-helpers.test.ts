@@ -101,7 +101,7 @@ function hostPackageVersion(): string {
   const parsed = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
     version?: unknown;
   };
-  assert.equal(typeof parsed.version, "string");
+  assert.ok(typeof parsed.version === "string");
   return parsed.version;
 }
 

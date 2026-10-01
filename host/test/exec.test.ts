@@ -14,7 +14,7 @@ const skipVmTests = shouldSkipVmTests();
 const timeoutMs = Number(process.env.WS_TIMEOUT ?? 60000);
 const execVmKey = "exec-default";
 const execVmOptions = {
-  server: { console: "none" },
+  sandbox: { console: "none" as const },
   env: { BASE_ENV: "base" },
 };
 
@@ -533,7 +533,7 @@ test(
 
       setTimeout(() => controller.abort(), 100);
 
-      await assert.rejects(proc, /exec aborted/);
+      await assert.rejects(proc.result, /exec aborted/);
     });
   },
 );

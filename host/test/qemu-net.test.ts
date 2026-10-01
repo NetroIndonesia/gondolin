@@ -376,7 +376,7 @@ test("qemu-net: parseHttpRequest decodes chunked body (and waits for completenes
   });
 
   assert.equal(finished, false);
-  assert.equal(captured, null);
+  assert.ok(captured === null);
 
   // Send the remainder of the chunked framing/body (no head)
   const rest = Buffer.from("llo\r\n0\r\n\r\n");
@@ -1620,7 +1620,7 @@ test("qemu-net: streaming onRequest clone-read preserves forwarded body", async 
 });
 
 test("qemu-net: streaming onRequest body rewrite drains remaining upload bytes", async () => {
-  let releaseFetch: (() => void) | null = null;
+  let releaseFetch = null as (() => void) | null;
   const fetchGate = new Promise<void>((resolve) => {
     releaseFetch = resolve;
   });
@@ -1649,7 +1649,9 @@ test("qemu-net: streaming onRequest body rewrite drains remaining upload bytes",
 
   let abortCalls = 0;
   const originalAbortTcpSession = backend.abortTcpSession.bind(backend);
-  (backend as any).abortTcpSession = (...args: any[]) => {
+  (backend as any).abortTcpSession = (
+    ...args: Parameters<typeof originalAbortTcpSession>
+  ) => {
     abortCalls += 1;
     return originalAbortTcpSession(...args);
   };
@@ -1713,7 +1715,7 @@ test("qemu-net: streaming onRequest body rewrite drains remaining upload bytes",
 });
 
 test("qemu-net: streaming onRequest failure clears paused RX state", async () => {
-  let releaseHook: (() => void) | null = null;
+  let releaseHook = null as (() => void) | null;
   const hookGate = new Promise<void>((resolve) => {
     releaseHook = resolve;
   });
@@ -4530,7 +4532,7 @@ test("qemu-net: http bridge limits concurrent upstream fetches", async () => {
   let active = 0;
   let maxActive = 0;
 
-  let releaseBlockedFetches: (() => void) | null = null;
+  let releaseBlockedFetches = null as (() => void) | null;
   const blockedFetches = new Promise<void>((resolve) => {
     releaseBlockedFetches = resolve;
   });
