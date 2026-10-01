@@ -1,10 +1,10 @@
-import { EventEmitter } from "events";
-import child_process from "child_process";
-import type { ChildProcess } from "child_process";
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { randomUUID } from "crypto";
+import { EventEmitter } from "node:events";
+import child_process from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import type { SandboxLogStream, SandboxState } from "./controller.ts";
 

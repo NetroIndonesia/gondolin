@@ -1,4 +1,4 @@
-import { Readable } from "stream";
+import { Readable } from "node:stream";
 
 import { attachTty } from "./utils/tty-attach.ts";
 
@@ -448,6 +448,7 @@ export class ExecProcess
     return this.session.id;
   }
 
+  // biome-ignore lint/suspicious/noThenProperty: ExecProcess is intentionally awaitable
   then<TResult1 = ExecResult, TResult2 = never>(
     onfulfilled?:
       | ((value: ExecResult) => TResult1 | PromiseLike<TResult1>)

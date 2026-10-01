@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 /** Check if any intermediate component of `target` (below `root`) is a symlink */
 export function hasSymlinkComponent(target: string, root: string): boolean {

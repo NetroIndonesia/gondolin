@@ -6,7 +6,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import * as child_process from "child_process";
+import * as child_process from "node:child_process";
 
 import {
   SandboxController,
@@ -170,7 +170,7 @@ test("SandboxController: idle pause uses a short QMP socket", async () => {
   const server = net.createServer((socket) => {
     socket.setEncoding("utf8");
     socket.write(
-      JSON.stringify({ QMP: { version: {}, capabilities: [] } }) + "\r\n",
+      `${JSON.stringify({ QMP: { version: {}, capabilities: [] } })}\r\n`,
     );
 
     let buffer = "";
@@ -184,7 +184,7 @@ test("SandboxController: idle pause uses a short QMP socket", async () => {
         if (!raw) continue;
         const message = JSON.parse(raw) as { execute?: string };
         if (message.execute) seenCommands.push(message.execute);
-        socket.write(JSON.stringify({ return: {} }) + "\r\n");
+        socket.write(`${JSON.stringify({ return: {} })}\r\n`);
       }
     });
   });

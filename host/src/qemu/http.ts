@@ -1,7 +1,7 @@
-import net from "net";
-import dns from "dns";
+import net from "node:net";
+import dns from "node:dns";
 import { fetch as undiciFetch } from "undici";
-import type { ReadableStream as WebReadableStream } from "stream/web";
+import type { ReadableStream as WebReadableStream } from "node:stream/web";
 
 import {
   ON_REQUEST_EARLY_POLICY_SAFE,
@@ -241,7 +241,7 @@ export async function handleTlsHttpData(
 }
 
 function has100ContinueExpectation(headers: Record<string, string>): boolean {
-  const expect = headers["expect"]?.toLowerCase();
+  const expect = headers.expect?.toLowerCase();
   if (!expect) return false;
 
   return expect
@@ -439,11 +439,6 @@ export async function handleHttpDataWithWriter(
       const head = parseHttpHead(headBuf);
       if (!head) return;
 
-      const bufferedBodyBytes = Math.max(
-        0,
-        httpSession.buffer.length - head.bodyOffset,
-      );
-
       const rawHeaders = head.headers;
       const headers = coalesceHeaderRecord(rawHeaders);
 
@@ -519,9 +514,9 @@ export async function handleHttpDataWithWriter(
       };
 
       const hasUpgrade = (() => {
-        const connection = headers["connection"]?.toLowerCase() ?? "";
+        const connection = headers.connection?.toLowerCase() ?? "";
         return (
-          Boolean(headers["upgrade"]) ||
+          Boolean(headers.upgrade) ||
           connection
             .split(",")
             .map((t: string) => t.trim())
@@ -785,7 +780,7 @@ export async function handleHttpDataWithWriter(
     if (contentLength > 0 && bufferedBodyBytes < contentLength) {
       // If the client uses Expect: 100-continue and no body bytes have arrived yet,
       // send the interim response first and wait for more data.
-      const expect = state.headers["expect"]?.toLowerCase() ?? "";
+      const expect = state.headers.expect?.toLowerCase() ?? "";
       if (expect.includes("100-continue") && bufferedBodyBytes === 0) {
         maybeSend100ContinueFromHead(
           httpSession,
@@ -1130,7 +1125,7 @@ function parseHttpHead(buffer: Buffer): {
   }
 
   const [method, target, version] = lines[0].split(" ");
-  if (!method || !target || !version || !version.startsWith("HTTP/")) {
+  if (!method || !target || !version?.startsWith("HTTP/")) {
     throw new Error("invalid request line");
   }
 
@@ -1152,7 +1147,7 @@ function validateExpectHeader(
   // RFC 9110: unknown expectations MUST be rejected with 417.
   if (version !== "HTTP/1.1") return;
 
-  const expect = headers["expect"]?.toLowerCase();
+  const expect = headers.expect?.toLowerCase();
   if (!expect) return;
 
   const tokens = expect
@@ -1449,7 +1444,7 @@ export async function fetchHookRequestAndRespond(
       );
     }
 
-    let responseHeaders = stripHopByHopHeaders(
+    const responseHeaders = stripHopByHopHeaders(
       responseHeadersToRecord(response.headers),
     );
     const contentEncodingValue = responseHeaders["content-encoding"];
@@ -1472,7 +1467,7 @@ export async function fetchHookRequestAndRespond(
       delete responseHeaders["content-encoding"];
       delete responseHeaders["content-length"];
     }
-    responseHeaders["connection"] = "close";
+    responseHeaders.connection = "close";
 
     const responseBodyStream =
       response.body as WebReadableStream<Uint8Array> | null;
@@ -1946,7 +1941,7 @@ function buildFetchUrl(
     }
     return request.target;
   }
-  const host = request.headers["host"];
+  const host = request.headers.host;
   if (!host) return null;
   return `${defaultScheme}://${host}${request.target}`;
 }
@@ -2385,7 +2380,7 @@ function normalizeHookResponseForGuest(
     isHead || status === 204 || status === 205 || status === 304;
 
   const headers: InternalHttpResponseHeaders = { ...response.headers };
-  headers["connection"] = "close";
+  headers.connection = "close";
   delete headers["transfer-encoding"];
 
   const body = suppressBody ? Buffer.alloc(0) : response.body;

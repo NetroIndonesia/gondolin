@@ -116,7 +116,7 @@ test("IngressGateway hooks: onRequest can rewrite target and headers", async () 
 
   const gateway = new IngressGateway(sandbox, listeners, {
     hooks: {
-      onRequest: (request) => {
+      onRequest: (_request) => {
         return {
           backendTarget: "/rewritten",
           headers: {

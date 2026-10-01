@@ -85,7 +85,7 @@ export function createShadowPathPredicate(
     const p = normalizeVfsPath(path);
     for (const shadow of normalized) {
       if (p === shadow) return true;
-      if (p.startsWith(shadow + "/")) return true;
+      if (p.startsWith(`${shadow}/`)) return true;
     }
     return false;
   };

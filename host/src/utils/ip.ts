@@ -52,7 +52,7 @@ export function parseIPv6Hextets(ip: string): number[] | null {
 
   const parts = normalized.split(":");
   const expanded = expandIpv6Parts(parts);
-  if (!expanded || expanded.length !== 8) return null;
+  if (expanded?.length !== 8) return null;
   return expanded;
 }
 

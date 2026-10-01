@@ -1,8 +1,8 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { createHash } from "crypto";
-import { execFileSync } from "child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 import { buildAlpineImages } from "./alpine.ts";
 import { gondolinCacheDir } from "../cache.ts";
@@ -566,15 +566,15 @@ function parseCStringLiteral(
     }
 
     if (cursor >= source.length) break;
-    const escape = source[cursor];
+    const escapeChar = source[cursor];
     cursor += 1;
 
-    switch (escape) {
+    switch (escapeChar) {
       case "'":
       case '"':
       case "?":
       case "\\":
-        pushByte(escape.charCodeAt(0));
+        pushByte(escapeChar.charCodeAt(0));
         break;
       case "a":
         pushByte(0x07);
@@ -617,8 +617,8 @@ function parseCStringLiteral(
         break;
       }
       default:
-        if (isOctalDigit(escape.charCodeAt(0))) {
-          let value = escape.charCodeAt(0) - 0x30;
+        if (isOctalDigit(escapeChar.charCodeAt(0))) {
+          let value = escapeChar.charCodeAt(0) - 0x30;
           for (let i = 0; i < 2 && cursor < source.length; i++) {
             const next = source.charCodeAt(cursor);
             if (!isOctalDigit(next)) break;
@@ -629,7 +629,7 @@ function parseCStringLiteral(
           break;
         }
         throw new Error(
-          `unsupported C string escape in libkrunfw kernel.c: \\${escape}`,
+          `unsupported C string escape in libkrunfw kernel.c: \\${escapeChar}`,
         );
     }
   }

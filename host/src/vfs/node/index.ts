@@ -1,5 +1,3 @@
-"use strict";
-
 import type { Dirent, Stats } from "node:fs";
 import { createRequire } from "node:module";
 

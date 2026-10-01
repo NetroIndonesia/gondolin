@@ -1,9 +1,9 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { randomUUID } from "crypto";
-import { execFileSync } from "child_process";
-import { createRequire } from "module";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 
 import { getHostNodeArchCached } from "../host/arch.ts";
 import {
@@ -541,7 +541,7 @@ type ResolveDefaultKrunRunnerPathDeps = {
 function resolveDefaultKrunRunnerPath(
   deps: ResolveDefaultKrunRunnerPathDeps = {},
 ): string {
-  const envValue = Object.prototype.hasOwnProperty.call(deps, "envPath")
+  const envValue = Object.hasOwn(deps, "envPath")
     ? deps.envPath
     : process.env.GONDOLIN_KRUN_RUNNER;
   const envPath = envValue?.trim();

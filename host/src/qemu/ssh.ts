@@ -1,4 +1,4 @@
-import { Duplex } from "stream";
+import { Duplex } from "node:stream";
 import ssh2 from "ssh2";
 import type {
   AuthContext as SshAuthContext,

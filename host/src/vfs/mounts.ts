@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import type fs from "node:fs";
 
 import { createErrnoError } from "./errors.ts";
 import type {
@@ -603,7 +603,7 @@ export function isNoEntryError(err: unknown) {
 export function isUnderMountPoint(normalizedPath: string, mountPoint: string) {
   if (normalizedPath === mountPoint) return true;
   if (mountPoint === "/") return normalizedPath.startsWith("/");
-  return normalizedPath.startsWith(mountPoint + "/");
+  return normalizedPath.startsWith(`${mountPoint}/`);
 }
 
 /** @internal */

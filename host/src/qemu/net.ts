@@ -1,15 +1,15 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 import { stripTrailingNewline } from "../debug.ts";
-import net from "net";
-import fs from "fs";
-import fsp from "fs/promises";
-import path from "path";
-import dgram from "dgram";
-import tls from "tls";
-import crypto from "crypto";
-import dns from "dns";
-import { Duplex } from "stream";
-import { monitorEventLoopDelay, performance } from "perf_hooks";
+import net from "node:net";
+import fs from "node:fs";
+import fsp from "node:fs/promises";
+import path from "node:path";
+import dgram from "node:dgram";
+import tls from "node:tls";
+import crypto from "node:crypto";
+import type dns from "node:dns";
+import { Duplex } from "node:stream";
+import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import forge from "node-forge";
 
 import {
@@ -26,7 +26,7 @@ import {
   isProbablyDnsPacket,
   parseDnsQuery,
 } from "./dns.ts";
-import { Agent } from "undici";
+import type { Agent } from "undici";
 
 import { AsyncSemaphore } from "../utils/async.ts";
 import { SyntheticDnsHostMap, normalizeIpv4Servers } from "../utils/dns.ts";

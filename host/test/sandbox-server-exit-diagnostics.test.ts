@@ -142,12 +142,15 @@ test("SandboxServer: boot start failure closes client and rejects later messages
   const captured: any[] = [];
   let closed = 0;
 
-  const connection = server.connect((data, isBinary) => {
-    if (isBinary) return;
-    captured.push(JSON.parse(String(data)));
-  }, () => {
-    closed += 1;
-  });
+  const connection = server.connect(
+    (data, isBinary) => {
+      if (isBinary) return;
+      captured.push(JSON.parse(String(data)));
+    },
+    () => {
+      closed += 1;
+    },
+  );
 
   const controller = (server as any).controller;
   controller.start = async () => {
@@ -194,7 +197,7 @@ test("SandboxServer: krun hint skips low-value Zig stack frames", async () => {
   );
   controller.emit(
     "log",
-    "    if (start_rc < 0) return krunError(\"krun_start_enter\", start_rc);\n",
+    '    if (start_rc < 0) return krunError("krun_start_enter", start_rc);\n',
     "stderr",
   );
   controller.emit("log", "                       ^\n", "stderr");

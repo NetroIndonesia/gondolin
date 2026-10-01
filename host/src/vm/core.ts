@@ -1,10 +1,10 @@
-import fs from "fs";
-import net from "net";
-import os from "os";
-import path from "path";
-import { randomUUID } from "crypto";
-import { execFileSync } from "child_process";
-import { Duplex, Readable } from "stream";
+import fs from "node:fs";
+import net from "node:net";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import type { Duplex, Readable } from "node:stream";
 
 import { AsyncSingleflight } from "../utils/async.ts";
 
@@ -76,7 +76,7 @@ import {
 } from "../ingress.ts";
 import { MemoryProvider, type VirtualProvider } from "../vfs/node/index.ts";
 import {
-  SandboxVfsProvider,
+  type SandboxVfsProvider,
   type VfsHooks,
   composeVfsHooks,
   wrapProvider,
@@ -725,9 +725,9 @@ export class VM {
       );
     }
 
-    const pubKey = fs.readFileSync(keyPath + ".pub", "utf8").trim();
+    const pubKey = fs.readFileSync(`${keyPath}.pub`, "utf8").trim();
 
-    const shQuote = (value: string) => "'" + value.replace(/'/g, "'\\''") + "'";
+    const shQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
     const sshUser = shQuote(user);
 
     // Install authorized_keys + start sandboxssh + start sshd
@@ -1118,7 +1118,7 @@ fi
         id,
         cmd,
         argv: argv.length ? argv : undefined,
-        env: mergedEnv && mergedEnv.length ? mergedEnv : undefined,
+        env: mergedEnv?.length ? mergedEnv : undefined,
         cwd: options.cwd,
         stdin: session.stdinEnabled ? true : undefined,
         pty: options.pty ? true : undefined,
@@ -1782,9 +1782,10 @@ fi
 
     let message: StatusMessage | ExecResponseMessage | ErrorMessage;
     try {
-      message = JSON.parse(
-        typeof data === "string" ? data : data.toString(),
-      ) as StatusMessage | ExecResponseMessage | ErrorMessage;
+      message = JSON.parse(typeof data === "string" ? data : data.toString()) as
+        | StatusMessage
+        | ExecResponseMessage
+        | ErrorMessage;
     } catch {
       return;
     }

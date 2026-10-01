@@ -1,4 +1,4 @@
-import { Duplex, PassThrough, Readable } from "stream";
+import { type Duplex, PassThrough, type Readable } from "node:stream";
 
 import { toBufferIterable } from "../utils/buffer-iter.ts";
 import {
@@ -11,19 +11,19 @@ import {
   buildPtyResize,
   buildStdinData,
 } from "./virtio-protocol.ts";
-import {
-  type BootCommandMessage,
-  type ClientMessage,
-  type ExecCommandMessage,
-  type ExecWindowCommandMessage,
-  type PtyResizeCommandMessage,
-  type StdinCommandMessage,
+import type {
+  BootCommandMessage,
+  ClientMessage,
+  ExecCommandMessage,
+  ExecWindowCommandMessage,
+  PtyResizeCommandMessage,
+  StdinCommandMessage,
 } from "./control-protocol.ts";
 import type { SandboxState } from "./controller.ts";
-import {
-  type GuestFileDeleteOptions,
-  type GuestFileReadOptions,
-  type GuestFileWriteOptions,
+import type {
+  GuestFileDeleteOptions,
+  GuestFileReadOptions,
+  GuestFileWriteOptions,
 } from "./server-options.ts";
 import {
   MAX_REQUEST_ID,
@@ -50,19 +50,6 @@ type BridgeWritableWaiter = {
   resolve: () => void;
   reject: (err: Error) => void;
   cleanup?: () => void;
-};
-
-type FileReadOperation = {
-  kind: "read";
-  stream: PassThrough;
-  resolve: () => void;
-  reject: (err: Error) => void;
-};
-
-type FileDoneOperation = {
-  kind: "write" | "delete";
-  resolve: () => void;
-  reject: (err: Error) => void;
 };
 
 export class SandboxServerOps {

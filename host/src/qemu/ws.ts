@@ -1,5 +1,5 @@
-import net from "net";
-import tls from "tls";
+import net from "node:net";
+import tls from "node:tls";
 
 import type { QemuNetworkBackend, TcpSession } from "./contracts.ts";
 import type { InternalHttpRequest } from "../internal/http-types.ts";
@@ -62,7 +62,7 @@ export function handleWebSocketClientData(
 
   const upstream = ws.upstream;
 
-  if (upstream && upstream.writable) {
+  if (upstream?.writable) {
     const nextWritable = upstream.writableLength + data.length;
     if (nextWritable > backend.maxTcpPendingWriteBytes) {
       abortWebSocketSession(
@@ -159,14 +159,14 @@ export async function bridgeWebSocketUpgrade(
 
   // Ensure Host header exists.
   const reqHeaders: Record<string, string> = { ...hookRequest.headers };
-  if (!reqHeaders["host"]) {
-    reqHeaders["host"] = info.parsedUrl.host;
+  if (!reqHeaders.host) {
+    reqHeaders.host = info.parsedUrl.host;
   }
 
   // Remove body framing headers; websocket handshakes do not send a body.
   delete reqHeaders["content-length"];
   delete reqHeaders["transfer-encoding"];
-  delete reqHeaders["expect"];
+  delete reqHeaders.expect;
 
   const target = (info.parsedUrl.pathname || "/") + info.parsedUrl.search;
 
@@ -178,7 +178,7 @@ export async function bridgeWebSocketUpgrade(
     const value = String(rawValue).replace(/[\r\n]+/g, " ");
     headerLines.push(`${name}: ${value}`);
   }
-  const headerBlob = headerLines.join("\r\n") + "\r\n\r\n";
+  const headerBlob = `${headerLines.join("\r\n")}\r\n\r\n`;
 
   upstream.write(Buffer.from(headerBlob, "latin1"));
 

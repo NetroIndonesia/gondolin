@@ -1,6 +1,6 @@
-import { createHash, randomUUID } from "crypto";
-import fs from "fs";
-import path from "path";
+import { createHash, randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 
 export { cacheBaseDir } from "../cache.ts";
 
@@ -87,7 +87,9 @@ function loadRegistryCache<T>(
   if (!fs.existsSync(cachePath)) return null;
 
   try {
-    const parsed = JSON.parse(fs.readFileSync(cachePath, "utf8")) as RegistryCache<T>;
+    const parsed = JSON.parse(
+      fs.readFileSync(cachePath, "utf8"),
+    ) as RegistryCache<T>;
     if (!parsed || typeof parsed !== "object") return null;
     if (parsed.url !== url) return null;
     return {

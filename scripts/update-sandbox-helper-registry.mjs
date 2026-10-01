@@ -90,19 +90,25 @@ function validateMetadata(raw, filePath, version) {
     throw new Error(`invalid helper metadata ${filePath}: arch ${raw.arch}`);
   }
   if (typeof raw.buildId !== "string" || !BUILD_ID_PATTERN.test(raw.buildId)) {
-    throw new Error(`invalid helper metadata ${filePath}: buildId ${raw.buildId}`);
+    throw new Error(
+      `invalid helper metadata ${filePath}: buildId ${raw.buildId}`,
+    );
   }
   if (typeof raw.target !== "string" || raw.target.length === 0) {
     throw new Error(`invalid helper metadata ${filePath}: target is required`);
   }
   if (typeof raw.zigVersion !== "string" || raw.zigVersion.length === 0) {
-    throw new Error(`invalid helper metadata ${filePath}: zigVersion is required`);
+    throw new Error(
+      `invalid helper metadata ${filePath}: zigVersion is required`,
+    );
   }
   if (typeof raw.archive !== "string" || raw.archive.length === 0) {
     throw new Error(`invalid helper metadata ${filePath}: archive is required`);
   }
   if (typeof raw.sha256 !== "string" || !SHA256_PATTERN.test(raw.sha256)) {
-    throw new Error(`invalid helper metadata ${filePath}: sha256 ${raw.sha256}`);
+    throw new Error(
+      `invalid helper metadata ${filePath}: sha256 ${raw.sha256}`,
+    );
   }
 
   return {
@@ -153,9 +159,15 @@ function loadRegistry(registryPath) {
     throw new Error(`invalid registry: ${registryPath}`);
   }
   if (registry.schema !== 1) {
-    throw new Error(`unsupported sandbox helper registry schema: ${registry.schema}`);
+    throw new Error(
+      `unsupported sandbox helper registry schema: ${registry.schema}`,
+    );
   }
-  if (!registry.refs || typeof registry.refs !== "object" || Array.isArray(registry.refs)) {
+  if (
+    !registry.refs ||
+    typeof registry.refs !== "object" ||
+    Array.isArray(registry.refs)
+  ) {
     throw new Error("invalid sandbox helper registry refs");
   }
   if (
@@ -180,7 +192,9 @@ function main() {
   const releaseTag = requireArg(args, "release-tag");
   const owner = requireArg(args, "owner");
   const repo = requireArg(args, "repo");
-  const registryPath = path.resolve(args.registry || "builtin-sandbox-helper-registry.json");
+  const registryPath = path.resolve(
+    args.registry || "builtin-sandbox-helper-registry.json",
+  );
   const metadataDir = path.resolve(args["metadata-dir"] || process.cwd());
   const metadata = loadMetadata(metadataDir, version);
   const registry = loadRegistry(registryPath);
@@ -210,6 +224,8 @@ function main() {
 try {
   main();
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exit(1);
 }

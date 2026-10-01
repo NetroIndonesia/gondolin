@@ -117,7 +117,7 @@ test("IngressGateway: ignores client Content-Length when transfer-encoding is pr
   assert.equal(Buffer.concat(res.bodyChunks).toString("utf8"), "ok");
 
   // Hop-by-hop removal honors Connection: bar
-  assert.equal(res.headers["bar"], undefined);
+  assert.equal(res.headers.bar, undefined);
 
   assert.ok(upstream);
   const upstreamBytes = Buffer.concat(upstream.written).toString("utf8");

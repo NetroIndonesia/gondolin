@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 import {
   createTempQcow2Overlay,
@@ -135,7 +135,7 @@ function writeCheckpointTrailer(
   diskPath: string,
   data: VmCheckpointData,
 ): void {
-  const json = Buffer.from(JSON.stringify(data, null, 2) + "\n", "utf8");
+  const json = Buffer.from(`${JSON.stringify(data, null, 2)}\n`, "utf8");
   const footer = Buffer.alloc(TRAILER_SIZE);
   TRAILER_MAGIC.copy(footer, 0);
   footer.writeBigUInt64BE(BigInt(json.length), 8);

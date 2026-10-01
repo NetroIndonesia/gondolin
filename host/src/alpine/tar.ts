@@ -1,8 +1,8 @@
-import fs from "fs";
-import path from "path";
-import { createGunzip } from "zlib";
-import { Writable } from "stream";
-import { pipeline } from "stream/promises";
+import fs from "node:fs";
+import path from "node:path";
+import { createGunzip } from "node:zlib";
+import { Writable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 import type { TarEntry } from "./types.ts";
 import { hasSymlinkComponent } from "./rootfs.ts";

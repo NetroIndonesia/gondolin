@@ -1,7 +1,7 @@
-import fs from "fs";
+import fs from "node:fs";
 import type { Stats } from "node:fs";
-import path from "path";
-import { Readable } from "stream";
+import path from "node:path";
+import { Readable } from "node:stream";
 
 import { toBufferIterable } from "../utils/buffer-iter.ts";
 import type { ExecResult } from "../exec.ts";
@@ -869,7 +869,7 @@ function resolveAbsoluteGuestPath(
   if (filePath.startsWith("/")) {
     return normalizeVfsPath(filePath);
   }
-  if (!cwd || !cwd.startsWith("/")) {
+  if (!cwd?.startsWith("/")) {
     return null;
   }
   return normalizeVfsPath(path.posix.join(cwd, filePath));

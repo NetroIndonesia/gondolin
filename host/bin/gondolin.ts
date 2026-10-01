@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-import { randomUUID } from "crypto";
-import fs from "fs";
-import net from "net";
-import os from "os";
-import path from "path";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import net from "node:net";
+import os from "node:os";
+import path from "node:path";
 import readline from "node:readline/promises";
-import { PassThrough } from "stream";
-import { fileURLToPath } from "url";
+import { PassThrough } from "node:stream";
+import { fileURLToPath } from "node:url";
 
 import { VmCheckpoint } from "../src/checkpoint.ts";
 import { gondolinCacheDir } from "../src/cache.ts";
@@ -16,6 +16,7 @@ import type { VirtualProvider } from "../src/vfs/node/index.ts";
 import { MemoryProvider, RealFSProvider } from "../src/vfs/node/index.ts";
 import { ReadonlyProvider } from "../src/vfs/readonly.ts";
 import { createHttpHooks } from "../src/http/hooks.ts";
+import type { HttpHooks } from "../src/qemu/contracts.ts";
 import { suggestHostsForSecret } from "../src/secret-host-suggestions.ts";
 import {
   ensureTrufflehogBinary,
@@ -80,10 +81,7 @@ function getDefaultInteractiveShellCommand(): string[] {
 }
 
 function checkpointBaseDir(): string {
-  return (
-    process.env.GONDOLIN_CHECKPOINT_DIR ??
-    gondolinCacheDir("checkpoints")
-  );
+  return process.env.GONDOLIN_CHECKPOINT_DIR ?? gondolinCacheDir("checkpoints");
 }
 
 function sanitizeCheckpointName(name: string): string {
@@ -595,10 +593,7 @@ function parseHostSecret(spec: string): SecretSpec {
       throw new Error(`Invalid host-secret format: ${spec} (empty name)`);
     }
 
-    const value =
-      eqIndex === -1
-        ? process.env[name]
-        : spec.slice(eqIndex + 1);
+    const value = eqIndex === -1 ? process.env[name] : spec.slice(eqIndex + 1);
     if (value === undefined) {
       throw new Error(`Environment variable ${name} not set for host-secret`);
     }
@@ -705,7 +700,9 @@ async function promptForSuggestedSecretHosts(
   }
 }
 
-async function resolveSecretHosts(secrets: SecretSpec[]): Promise<SecretSpec[]> {
+async function resolveSecretHosts(
+  secrets: SecretSpec[],
+): Promise<SecretSpec[]> {
   const resolved: SecretSpec[] = [];
 
   for (const secret of secrets) {
@@ -960,7 +957,7 @@ function buildVmOptions(common: CommonOptions) {
   }
 
   // Build HTTP hooks if we have network options
-  let httpHooks;
+  let httpHooks: HttpHooks | undefined;
   let env: Record<string, string> | undefined;
 
   if (common.allowedHosts.length > 0 || common.secrets.length > 0) {
@@ -2175,7 +2172,7 @@ async function runAttach(argv: string[]) {
   });
 
   const session = await findSession(args.sessionId);
-  if (!session || !session.alive) {
+  if (!session?.alive) {
     throw new Error(`session not found or not running: ${args.sessionId}`);
   }
 
@@ -2417,7 +2414,7 @@ async function runSnapshot(argv: string[]) {
   });
 
   const session = await findSession(args.sessionId);
-  if (!session || !session.alive) {
+  if (!session?.alive) {
     throw new Error(`session not found or not running: ${args.sessionId}`);
   }
 

@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { execFileSync } from "child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 import type {
   Architecture,
@@ -653,15 +653,14 @@ function parseTarNumber(field: Buffer): number {
       value = (value << 8n) | BigInt(field[idx]!);
     }
     if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new Error("tar numeric field exceeds JavaScript safe integer range");
+      throw new Error(
+        "tar numeric field exceeds JavaScript safe integer range",
+      );
     }
     return Number(value);
   }
 
-  const text = field
-    .toString("utf8")
-    .replace(/\0.*$/, "")
-    .trim();
+  const text = field.toString("utf8").replace(/\0.*$/, "").trim();
   if (!text) {
     return 0;
   }

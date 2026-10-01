@@ -1,5 +1,5 @@
-import net from "net";
-import dns from "dns";
+import net from "node:net";
+import dns from "node:dns";
 import { Agent } from "undici";
 import forge from "node-forge";
 
@@ -125,7 +125,7 @@ function renderHttpResponseHead(
 
   let headerBlock = statusLine;
   if (headerLines.length > 0) {
-    headerBlock += headerLines.join("\r\n") + "\r\n";
+    headerBlock += `${headerLines.join("\r\n")}\r\n`;
   }
   headerBlock += "\r\n";
 
@@ -172,7 +172,7 @@ function joinInternalHeaderValue(raw: string | string[] | undefined): string {
 export function isWebSocketUpgradeRequestHeaders(
   headers: Record<string, string | string[] | undefined>,
 ): boolean {
-  const upgrade = joinInternalHeaderValue(headers["upgrade"]).toLowerCase();
+  const upgrade = joinInternalHeaderValue(headers.upgrade).toLowerCase();
   if (upgrade === "websocket") return true;
 
   // Some clients omit Upgrade/Connection but include the WebSocket-specific headers.
@@ -203,7 +203,7 @@ export function stripHopByHopHeaders<T extends InternalHeaderValue>(
   this: any,
   headers: Record<string, T>,
 ): Record<string, T> {
-  const connectionValue = headers["connection"];
+  const connectionValue = headers.connection;
   const connection = Array.isArray(connectionValue)
     ? connectionValue.join(",")
     : typeof connectionValue === "string"
@@ -244,14 +244,14 @@ export function stripHopByHopHeadersForWebSocket<T extends InternalHeaderValue>(
   // No request bodies for WebSocket handshake
   delete out["content-length"];
   delete out["transfer-encoding"];
-  delete out["expect"];
+  delete out.expect;
 
   // Avoid forwarding framed/trailer-related hop-by-hop headers
-  delete out["te"];
-  delete out["trailer"];
+  delete out.te;
+  delete out.trailer;
 
   // Apply Connection: token stripping, but keep Upgrade + WebSocket-specific headers
-  const connectionValue = out["connection"];
+  const connectionValue = out.connection;
   const connection = Array.isArray(connectionValue)
     ? connectionValue.join(",")
     : typeof connectionValue === "string"

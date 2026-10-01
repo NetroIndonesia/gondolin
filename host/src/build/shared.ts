@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { execFileSync, spawn, type SpawnOptions } from "child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync, spawn, type SpawnOptions } from "node:child_process";
 
 import {
   MANIFEST_FILENAME,

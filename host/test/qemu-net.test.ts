@@ -6,7 +6,7 @@ import test from "node:test";
 import crypto from "node:crypto";
 import tls from "node:tls";
 import net from "node:net";
-import dns from "node:dns";
+import type dns from "node:dns";
 import http from "node:http";
 
 import forge from "node-forge";
@@ -507,7 +507,7 @@ test("qemu-net: parseHttpRequest errors on invalid content-length (does not hang
 test("qemu-net: parseHttpRequest rejects oversized headers without terminator (fail fast)", async () => {
   const backend = makeBackend({ maxHttpBodyBytes: 1024 });
 
-  const huge = "GET / HTTP/1.1\r\n" + "X: " + "a".repeat(70_000);
+  const huge = `GET / HTTP/1.1\r\nX: ${"a".repeat(70_000)}`;
 
   const writes: Buffer[] = [];
   const session: any = { http: undefined };
@@ -533,7 +533,6 @@ test("qemu-net: parseHttpRequest rejects oversized headers without terminator (f
 });
 
 test("qemu-net: stripHopByHopHeaders removes headers nominated by Connection", () => {
-  const backend = makeBackend();
   const stripped = stripHopByHopHeaders({
     host: "example.com",
     connection: "x-foo, keep-alive",
@@ -549,8 +548,6 @@ test("qemu-net: stripHopByHopHeaders removes headers nominated by Connection", (
 });
 
 test("qemu-net: stripHopByHopHeadersForWebSocket strips connection-nominated headers", () => {
-  const backend = makeBackend();
-
   const stripped = stripHopByHopHeadersForWebSocket({
     host: "example.com",
     connection: "Upgrade, x-foo, sec-websocket-key",
@@ -2388,7 +2385,7 @@ test("qemu-net: websocket upgrade preserves headers when onRequest hook is set",
 
       // Validate WebSocket upgrade headers are present
       if (
-        receivedHeaders["upgrade"]?.toLowerCase() === "websocket" &&
+        receivedHeaders.upgrade?.toLowerCase() === "websocket" &&
         receivedHeaders["sec-websocket-key"]
       ) {
         sock.write(
@@ -2472,8 +2469,8 @@ test("qemu-net: websocket upgrade preserves headers when onRequest hook is set",
     assert.ok(out.includes("ws-ok"));
 
     // Verify the server actually received the critical WebSocket headers
-    assert.equal(receivedHeaders["upgrade"], "websocket");
-    assert.equal(receivedHeaders["connection"], "Upgrade");
+    assert.equal(receivedHeaders.upgrade, "websocket");
+    assert.equal(receivedHeaders.connection, "Upgrade");
     assert.equal(
       receivedHeaders["sec-websocket-key"],
       "dGhlIHNhbXBsZSBub25jZQ==",

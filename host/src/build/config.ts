@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 /**
  * Build configuration schema for custom Linux kernel and rootfs builds.

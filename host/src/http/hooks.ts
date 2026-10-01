@@ -1,5 +1,5 @@
-import crypto from "crypto";
-import net from "net";
+import crypto from "node:crypto";
+import net from "node:net";
 
 import {
   ON_REQUEST_EARLY_POLICY_SAFE,
@@ -174,7 +174,9 @@ export function createHttpHooks(
       secretMarker,
       identifier,
     );
-    if (!(secretPlaceholderMode === "shared" && secret.placeholder === undefined)) {
+    if (
+      !(secretPlaceholderMode === "shared" && secret.placeholder === undefined)
+    ) {
       assertSecretPlaceholderIsSafe(
         name,
         placeholder,
@@ -392,7 +394,10 @@ function makeSecretMarker(): string {
 }
 
 function makeSecretIdentifier(name: string): string {
-  const identifier = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
+  const identifier = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_");
   if (!identifier) {
     throw new Error(`invalid secret identifier for ${name}`);
   }
@@ -626,7 +631,7 @@ function requestContainsSecretValuesInHeaders(
       // Basic auth uses base64 encoding
       if (/^(authorization|proxy-authorization)$/i.test(headerName)) {
         const decoded = decodeBasicAuth(headerValue);
-        if (decoded && decoded.includes(value)) {
+        if (decoded?.includes(value)) {
           return true;
         }
       }
@@ -997,7 +1002,11 @@ function collectLegacySecretReferenceRanges(
     context.mode === "shared" && context.marker
       ? new Set(entries.map((entry) => `${context.marker}.${entry.identifier}`))
       : null;
-  const replacements: Array<{ start: number; end: number; entry: SecretEntry }> = [];
+  const replacements: Array<{
+    start: number;
+    end: number;
+    entry: SecretEntry;
+  }> = [];
 
   for (const entry of entries) {
     if (markerPlaceholders?.has(entry.placeholder)) continue;
@@ -1051,11 +1060,16 @@ function collectMarkerSecretReferenceRanges(
   const byIdentifier = new Map(
     entries
       .filter(
-        (entry) => entry.placeholder === `${context.marker}.${entry.identifier}`,
+        (entry) =>
+          entry.placeholder === `${context.marker}.${entry.identifier}`,
       )
       .map((entry) => [entry.identifier, entry]),
   );
-  const replacements: Array<{ start: number; end: number; entry: SecretEntry }> = [];
+  const replacements: Array<{
+    start: number;
+    end: number;
+    entry: SecretEntry;
+  }> = [];
   const prefix = `${context.marker}.`;
 
   let searchFrom = 0;

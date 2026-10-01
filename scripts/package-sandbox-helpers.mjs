@@ -9,12 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const HELPER_KIND = "gondolin-sandbox-helpers";
 const RELEASE_ARTIFACT_KIND = "gondolin-sandbox-helpers-release-artifact";
-const BINARY_NAMES = [
-  "sandboxd",
-  "sandboxfs",
-  "sandboxssh",
-  "sandboxingress",
-];
+const BINARY_NAMES = ["sandboxd", "sandboxfs", "sandboxssh", "sandboxingress"];
 const ZIG_TARGETS = {
   aarch64: "aarch64-linux-musl",
   x86_64: "x86_64-linux-musl",
@@ -146,14 +141,7 @@ function hasGnuTar() {
 }
 
 function createPortableTarGz(stageDir, archivePath) {
-  const tarArgs = [
-    "-czf",
-    archivePath,
-    "-C",
-    stageDir,
-    "manifest.json",
-    "bin",
-  ];
+  const tarArgs = ["-czf", archivePath, "-C", stageDir, "manifest.json", "bin"];
   const tar = spawnSync("tar", tarArgs, {
     maxBuffer: MAX_ARCHIVE_BYTES,
   });
@@ -236,9 +224,12 @@ function main() {
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const repoRoot = path.resolve(scriptDir, "..");
-  const guestDir = path.resolve(args["guest-dir"] || path.join(repoRoot, "guest"));
+  const guestDir = path.resolve(
+    args["guest-dir"] || path.join(repoRoot, "guest"),
+  );
   const outputDir = path.resolve(args["output-dir"] || process.cwd());
-  const sourceRef = typeof args["source-ref"] === "string" ? args["source-ref"].trim() : "";
+  const sourceRef =
+    typeof args["source-ref"] === "string" ? args["source-ref"].trim() : "";
   const zigVersion =
     typeof args["zig-version"] === "string" && args["zig-version"].trim()
       ? args["zig-version"].trim()
@@ -324,6 +315,8 @@ function main() {
 try {
   main();
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exit(1);
 }

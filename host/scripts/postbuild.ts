@@ -81,10 +81,7 @@ function rewriteDeclarationsInDir(dirPath: string): void {
 
     const source = fs.readFileSync(fullPath, "utf8");
     const rewritten = source
-      .replace(
-        /(from\s+["'])(\.{1,2}\/[^"']+)\.ts(["'])/g,
-        "$1$2.js$3",
-      )
+      .replace(/(from\s+["'])(\.{1,2}\/[^"']+)\.ts(["'])/g, "$1$2.js$3")
       .replace(
         /(import\(\s*["'])(\.{1,2}\/[^"']+)\.ts(["']\s*\))/g,
         "$1$2.js$3",

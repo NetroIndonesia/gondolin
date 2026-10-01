@@ -69,7 +69,10 @@ function createHelperBundle(
   };
 }
 
-function createHelperArchive(bundleDir: string, tmpDir: string): {
+function createHelperArchive(
+  bundleDir: string,
+  tmpDir: string,
+): {
   archivePath: string;
   data: Buffer;
   sha256: string;
@@ -85,7 +88,8 @@ function createHelperArchive(bundleDir: string, tmpDir: string): {
 }
 
 function restoreFetch(prevFetch: typeof globalThis.fetch): void {
-  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = prevFetch;
+  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+    prevFetch;
 }
 
 function setEnv(name: string, value: string | undefined): void {
@@ -242,10 +246,11 @@ test("sandbox helpers: explicit helper directory bypasses registry fetch", async
 
   const prevFetch = globalThis.fetch;
   let fetchCalls = 0;
-  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = async () => {
-    fetchCalls += 1;
-    return new Response("not found", { status: 404 });
-  };
+  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+    async () => {
+      fetchCalls += 1;
+      return new Response("not found", { status: 404 });
+    };
 
   try {
     const resolved = await ensureSandboxHelperBinaries({
@@ -255,7 +260,10 @@ test("sandbox helpers: explicit helper directory bypasses registry fetch", async
     });
     assert.equal(resolved.source, "directory");
     assert.equal(resolved.buildId, buildId);
-    assert.equal(resolved.paths.sandboxingressPath, path.join(bundleDir, "bin", "sandboxingress"));
+    assert.equal(
+      resolved.paths.sandboxingressPath,
+      path.join(bundleDir, "bin", "sandboxingress"),
+    );
     assert.equal(fetchCalls, 0);
   } finally {
     restoreFetch(prevFetch);
@@ -362,7 +370,8 @@ test("resolveSandboxBinaryPaths: uses registry helpers by default without zig", 
   const prevRegistryUrl = process.env.GONDOLIN_SANDBOX_HELPER_REGISTRY_URL;
   const prevStore = process.env.GONDOLIN_SANDBOX_HELPER_STORE;
   const prevHelpersDir = process.env.GONDOLIN_SANDBOX_HELPERS_DIR;
-  const prevSourceBuild = process.env.GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE;
+  const prevSourceBuild =
+    process.env.GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE;
   let archiveFetches = 0;
 
   (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = async (
@@ -448,10 +457,11 @@ test("resolveSandboxBinaryPaths: all custom helper paths bypass registry", async
 
   const prevFetch = globalThis.fetch;
   let fetchCalls = 0;
-  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = async () => {
-    fetchCalls += 1;
-    return new Response("not found", { status: 404 });
-  };
+  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+    async () => {
+      fetchCalls += 1;
+      return new Response("not found", { status: 404 });
+    };
 
   try {
     const paths = await resolveSandboxBinaryPaths(
@@ -495,10 +505,12 @@ test("resolveSandboxBinaryPaths: registry failures do not source-build by defaul
   const prevStore = process.env.GONDOLIN_SANDBOX_HELPER_STORE;
   const prevHelpersDir = process.env.GONDOLIN_SANDBOX_HELPERS_DIR;
   const prevGuestSrc = process.env.GONDOLIN_GUEST_SRC;
-  const prevSourceBuild = process.env.GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE;
+  const prevSourceBuild =
+    process.env.GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE;
 
-  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = async () =>
-    new Response("not found", { status: 404, statusText: "Not Found" });
+  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+    async () =>
+      new Response("not found", { status: 404, statusText: "Not Found" });
 
   try {
     process.env.PATH = `${stubDir}:${prevPath ?? ""}`;
@@ -563,13 +575,18 @@ test("resolveSandboxBinaryPaths: source builds require explicit env opt-in", asy
   const prevStore = process.env.GONDOLIN_SANDBOX_HELPER_STORE;
   const prevHelpersDir = process.env.GONDOLIN_SANDBOX_HELPERS_DIR;
   const prevGuestSrc = process.env.GONDOLIN_GUEST_SRC;
-  const prevSourceBuild = process.env.GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE;
+  const prevSourceBuild =
+    process.env.GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE;
   let fetchCalls = 0;
 
-  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = async () => {
-    fetchCalls += 1;
-    return new Response("not found", { status: 404, statusText: "Not Found" });
-  };
+  (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+    async () => {
+      fetchCalls += 1;
+      return new Response("not found", {
+        status: 404,
+        statusText: "Not Found",
+      });
+    };
 
   try {
     process.env.PATH = `${stubDir}:${prevPath ?? ""}`;

@@ -2,9 +2,9 @@
  * Asset builder for custom Linux kernel and rootfs images.
  */
 
-import fs from "fs";
-import os from "os";
-import path from "path";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import { loadAssetManifest } from "../assets.ts";
 import type { BuildConfig } from "./config.ts";

@@ -3,7 +3,7 @@
 PNPM ?= pnpm
 NODE ?= node
 RUN_PARALLEL ?= ../scripts/run-parallel
-PRETTIER ?= ../node_modules/.bin/prettier
+BIOME ?= ../node_modules/.bin/biome
 
 # Host fuzzer target name (see host/fuzz/targets)
 TARGET ?= virtio
@@ -14,18 +14,11 @@ build:
 typecheck:
 	@$(PNPM) exec tsc -p tsconfig.json --noEmit
 
-lint: typecheck
+lint:
+	@$(BIOME) check --error-on-warnings . ../scripts
 
 format:
-	@$(PRETTIER) --write --ignore-unknown --no-error-on-unmatched-pattern \
-		"src/**/*.ts" \
-		"bin/**/*.ts" \
-		"test/**/*.ts" \
-		"fuzz/**/*.ts" \
-		"examples/**/*.ts" \
-		"package.json" \
-		"tsconfig.json" \
-		"README.md"
+	@$(BIOME) check --write . ../scripts
 
 test:
 	@$(RUN_PARALLEL) -j 1 \

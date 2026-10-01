@@ -1,7 +1,7 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { randomUUID } from "crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import { extractTarGz } from "../alpine/tar.ts";
 import {
@@ -119,7 +119,9 @@ function resolveSupportedPlatform(
 
 function parseRef(reference: string): string {
   const trimmed = reference.trim();
-  if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*:[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(trimmed)) {
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._/-]*:[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(trimmed)
+  ) {
     throw new Error(`invalid trufflehog ref: ${reference}`);
   }
   return trimmed;
@@ -199,34 +201,56 @@ function parseBuiltinTrufflehogRegistry(
   }
   const baseUrl = new URL(sourceUrl);
 
-  if (!rec.builds || typeof rec.builds !== "object" || Array.isArray(rec.builds)) {
-    throw new Error("invalid builtin trufflehog registry: builds must be an object");
+  if (
+    !rec.builds ||
+    typeof rec.builds !== "object" ||
+    Array.isArray(rec.builds)
+  ) {
+    throw new Error(
+      "invalid builtin trufflehog registry: builds must be an object",
+    );
   }
   const builds: Record<string, TrufflehogRegistryBuild> = {};
-  for (const [buildId, value] of Object.entries(rec.builds as Record<string, unknown>)) {
+  for (const [buildId, value] of Object.entries(
+    rec.builds as Record<string, unknown>,
+  )) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(buildId)) {
       throw new Error(`invalid builtin trufflehog build id: ${buildId}`);
     }
-    builds[buildId] = parseRegistryBuild(value, `builds['${buildId}']`, baseUrl);
+    builds[buildId] = parseRegistryBuild(
+      value,
+      `builds['${buildId}']`,
+      baseUrl,
+    );
   }
 
   if (!rec.refs || typeof rec.refs !== "object" || Array.isArray(rec.refs)) {
-    throw new Error("invalid builtin trufflehog registry: refs must be an object");
+    throw new Error(
+      "invalid builtin trufflehog registry: refs must be an object",
+    );
   }
   const refs: Record<string, Partial<Record<SupportedPlatform, string>>> = {};
-  for (const [reference, value] of Object.entries(rec.refs as Record<string, unknown>)) {
+  for (const [reference, value] of Object.entries(
+    rec.refs as Record<string, unknown>,
+  )) {
     const canonical = parseRef(reference);
     if (canonical !== reference) {
-      throw new Error(`invalid builtin trufflehog registry ref key: ${reference}`);
+      throw new Error(
+        `invalid builtin trufflehog registry ref key: ${reference}`,
+      );
     }
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw new Error(`invalid registry ref '${reference}': expected object`);
     }
     const mapped: Partial<Record<SupportedPlatform, string>> = {};
-    for (const [platformKey, buildIdValue] of Object.entries(value as Record<string, unknown>)) {
+    for (const [platformKey, buildIdValue] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
       const platform = normalizeSupportedPlatform(platformKey);
       if (!platform) {
-        throw new Error(`invalid registry ref '${reference}' platform key: ${platformKey}`);
+        throw new Error(
+          `invalid registry ref '${reference}' platform key: ${platformKey}`,
+        );
       }
       if (typeof buildIdValue !== "string") {
         throw new Error(
@@ -318,7 +342,9 @@ async function installManagedBinary(
   const targetPath = installedBinaryPath(storeDir, buildId);
   if (fs.existsSync(targetPath)) return targetPath;
 
-  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "gondolin-trufflehog-"));
+  const tmpRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "gondolin-trufflehog-"),
+  );
   const archivePath = path.join(tmpRoot, "trufflehog.tar.gz");
   const extractDir = path.join(tmpRoot, "extract");
   const installDir = path.dirname(targetPath);
@@ -327,14 +353,20 @@ async function installManagedBinary(
     log?.(`Downloading trufflehog ${build.version} for ${build.platform}`);
     fs.writeFileSync(
       archivePath,
-      await downloadToBuffer(build.url, build.sha256, "gondolin-trufflehog-fetch"),
+      await downloadToBuffer(
+        build.url,
+        build.sha256,
+        "gondolin-trufflehog-fetch",
+      ),
     );
     fs.mkdirSync(extractDir, { recursive: true });
     await extractTarGz(archivePath, extractDir);
 
     const binary = findBinary(extractDir);
     if (!binary) {
-      throw new Error("downloaded trufflehog archive did not contain a trufflehog binary");
+      throw new Error(
+        "downloaded trufflehog archive did not contain a trufflehog binary",
+      );
     }
 
     fs.mkdirSync(path.dirname(installDir), { recursive: true });
@@ -372,7 +404,9 @@ export async function ensureTrufflehogSourceDir(
     throw new Error(`trufflehog build ${buildId} does not provide sourceUrl`);
   }
 
-  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "gondolin-trufflehog-src-"));
+  const tmpRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "gondolin-trufflehog-src-"),
+  );
   const archivePath = path.join(tmpRoot, "trufflehog-source.tar.gz");
   const extractDir = path.join(tmpRoot, "extract");
 

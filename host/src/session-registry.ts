@@ -1,6 +1,6 @@
-import fs from "fs";
-import net from "net";
-import path from "path";
+import fs from "node:fs";
+import net from "node:net";
+import path from "node:path";
 
 import { gondolinCacheDir } from "./cache.ts";
 import type { SandboxConnection } from "./sandbox/client.ts";
@@ -111,7 +111,7 @@ export function registerSession(options: { id: string; label?: string }): {
     label: options.label,
   };
 
-  fs.writeFileSync(metaPath, JSON.stringify(info, null, 2) + "\n");
+  fs.writeFileSync(metaPath, `${JSON.stringify(info, null, 2)}\n`);
   return { socketPath: sockPath, metadataPath: metaPath };
 }
 
