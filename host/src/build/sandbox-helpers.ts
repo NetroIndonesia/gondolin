@@ -645,6 +645,8 @@ function resolveSandboxHelperDirectory(
   options: {
     expectedArch?: Architecture;
     expectedGondolinVersion?: string;
+    /** content-derived build id the helpers must match */
+    expectedBuildId?: string;
     source: "directory" | "cache";
   },
 ): ResolvedSandboxHelpers {
@@ -674,6 +676,11 @@ function resolveSandboxHelperDirectory(
     ) {
       throw new Error(
         `sandbox helper gondolinVersion mismatch\n  expected: ${options.expectedGondolinVersion}\n  got:      ${manifest.gondolinVersion}`,
+      );
+    }
+    if (options.expectedBuildId && buildId !== options.expectedBuildId) {
+      throw new Error(
+        `sandbox helper buildId mismatch\n  expected: ${options.expectedBuildId}\n  got:      ${buildId}\n  dir:      ${resolvedDir}`,
       );
     }
   } else if (!arch) {
@@ -752,7 +759,7 @@ async function importSandboxHelpersFromSource(
           return {
             ...resolveSandboxHelperDirectory(objectDir, {
               expectedArch: source.arch,
-              expectedGondolinVersion: source.gondolinVersion,
+              expectedBuildId,
               source: "cache",
             }),
             source: "download",
@@ -764,7 +771,7 @@ async function importSandboxHelpersFromSource(
 
     const resolved = resolveSandboxHelperDirectory(objectDir, {
       expectedArch: source.arch,
-      expectedGondolinVersion: source.gondolinVersion,
+      expectedBuildId,
       source: "cache",
     });
     return { ...resolved, source: "download" };
@@ -800,9 +807,13 @@ export async function ensureSandboxHelperBinaries(
 
   const objectDir = helperObjectDir(storeDir, buildId);
   if (fs.existsSync(objectDir)) {
+    // Build ids are content-addressed and the registry maps several releases
+    // to the same build when helper binaries are unchanged.  The cached
+    // manifest records whichever release was downloaded first, so verify the
+    // content instead of the release version.
     return resolveSandboxHelperDirectory(objectDir, {
       expectedArch: options.arch,
-      expectedGondolinVersion: gondolinVersion,
+      expectedBuildId: buildId,
       source: "cache",
     });
   }

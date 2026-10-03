@@ -170,6 +170,10 @@ test("sandbox helpers: ensureSandboxHelperBinaries downloads and caches helpers"
       "gondolin:9.8.7": {
         x86_64: buildId,
       },
+      // later release with unchanged helper binaries shares the build id
+      "gondolin:9.9.0": {
+        x86_64: buildId,
+      },
     },
     builds: {
       [buildId]: {
@@ -232,6 +236,19 @@ test("sandbox helpers: ensureSandboxHelperBinaries downloads and caches helpers"
     assert.equal(second.buildId, buildId);
     assert.equal(archiveFetches, 1);
     assert.equal(registryFetches, 2);
+
+    // Upgrading gondolin must reuse the cached object even though its
+    // manifest records the release that first downloaded it.
+    const upgraded = await ensureSandboxHelperBinaries({
+      arch: "x86_64",
+      gondolinVersion: "9.9.0",
+      registryUrl,
+      storeDir,
+    });
+    assert.equal(upgraded.source, "cache");
+    assert.equal(upgraded.buildId, buildId);
+    assert.equal(upgraded.manifest?.gondolinVersion, "9.8.7");
+    assert.equal(archiveFetches, 1);
   } finally {
     restoreFetch(prevFetch);
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -602,7 +619,8 @@ test("resolveSandboxBinaryPaths: source builds require explicit env opt-in", asy
       () => {},
     );
 
-    assert.equal(fetchCalls, 1);
+    // The env flag forces a source build without consulting the registry.
+    assert.equal(fetchCalls, 0);
     assert.equal(
       fs.readFileSync(paths.sandboxsshPath, "utf8"),
       "#!/bin/sh\necho source-sandboxssh\n",
