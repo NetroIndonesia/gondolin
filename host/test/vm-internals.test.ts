@@ -469,14 +469,14 @@ test("vm internals: stale timeout cleanup does not close newer startup", async (
   });
 
   let staleCloseCalls = 0;
-  const originalClose = vm.close.bind(vm);
+  const originalCloseInternal = (vm as any).closeInternal.bind(vm);
 
   (vm as any).ensureVmmAvailable = () => {};
   (vm as any).ensureConnection = async () => {};
   (vm as any).ensureRunning = async () => new Promise<void>(() => {});
   (vm as any).ensureVfsReady = async () => {};
   (vm as any).ensureSessionIpc = async () => {};
-  (vm as any).close = async () => {
+  (vm as any).closeInternal = async () => {
     staleCloseCalls += 1;
   };
 
@@ -492,8 +492,78 @@ test("vm internals: stale timeout cleanup does not close newer startup", async (
     await delay(30);
     assert.equal(staleCloseCalls, 0);
   } finally {
-    (vm as any).close = originalClose;
-    await originalClose();
+    (vm as any).closeInternal = originalCloseInternal;
+    await vm.close();
+    cleanup();
+  }
+});
+
+test("vm internals: startup timeout cleanup tears down without closing the vm", async () => {
+  const { vm, cleanup } = makeVm({
+    autoStart: false,
+    startTimeoutMs: 10,
+    vfs: null,
+  });
+
+  let closeInternalCalls = 0;
+  const originalCloseInternal = (vm as any).closeInternal.bind(vm);
+
+  (vm as any).ensureVmmAvailable = () => {};
+  (vm as any).ensureConnection = async () => {};
+  (vm as any).ensureRunning = async () => new Promise<void>(() => {});
+  (vm as any).ensureVfsReady = async () => {};
+  (vm as any).ensureSessionIpc = async () => {};
+  (vm as any).closeInternal = async () => {
+    closeInternalCalls += 1;
+  };
+
+  try {
+    await assert.rejects(
+      () => vm.start(),
+      /vm startup timed out after 10ms while waiting for guest readiness/,
+    );
+    await delay(30);
+    assert.equal(closeInternalCalls, 1);
+
+    // The timeout cleanup must leave the vm restartable.
+    (vm as any).ensureRunning = async () => {};
+    await vm.start();
+  } finally {
+    (vm as any).closeInternal = originalCloseInternal;
+    await vm.close();
+    cleanup();
+  }
+});
+
+test("vm internals: closed vm cannot be restarted by start or exec", async () => {
+  const { vm, cleanup } = makeVm({
+    autoStart: false,
+    vfs: null,
+  });
+
+  let serverStarts = 0;
+  (vm as any).ensureVmmAvailable = () => {};
+  (vm as any).ensureConnection = async () => {};
+  (vm as any).ensureRunning = async () => {};
+  (vm as any).ensureVfsReady = async () => {};
+  (vm as any).ensureSessionIpc = async () => {};
+  const server = (vm as any).server;
+  const originalServerStart = server.start.bind(server);
+  server.start = async () => {
+    serverStarts += 1;
+  };
+
+  try {
+    await vm.close();
+
+    await assert.rejects(() => vm.start(), /vm is closed/);
+    await assert.rejects(async () => {
+      await vm.exec(["/bin/true"]);
+    }, /vm is closed/);
+    await assert.rejects(() => vm.enableIngress(), /vm is closed/);
+    assert.equal(serverStarts, 0);
+  } finally {
+    server.start = originalServerStart;
     cleanup();
   }
 });

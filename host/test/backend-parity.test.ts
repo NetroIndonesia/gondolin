@@ -373,21 +373,38 @@ for (const backend of backends) {
       sandbox: backendSandboxOptions(backend),
     });
 
+    // Single teardown hook so ordering is explicit: the ingress listener must
+    // be closed before the vm, and nothing may touch the vm after close().
+    let access: Awaited<ReturnType<VM["enableIngress"]>> | null = null;
     t.after(async () => {
+      if (access) {
+        await access.close();
+      }
       await vm.close();
     });
 
     await vm.start();
 
-    const busyboxProbe = await vm.exec([
+    // Alpine's busybox does not ship the httpd applet, so prefer python3.
+    const serverProbe = await vm.exec([
       "/bin/sh",
       "-lc",
-      "command -v busybox",
+      [
+        "if command -v python3 >/dev/null 2>&1; then echo python3;",
+        "elif busybox --list 2>/dev/null | grep -qx httpd; then echo busybox;",
+        "else exit 1; fi",
+      ].join(" "),
     ]);
-    if (busyboxProbe.exitCode !== 0) {
-      t.skip("guest image does not include busybox httpd");
+    const serverKind = serverProbe.stdout.trim();
+    if (serverProbe.exitCode !== 0 || !serverKind) {
+      t.skip("guest image does not include a supported local HTTP server");
       return;
     }
+
+    const launchCommand =
+      serverKind === "python3"
+        ? "python3 -m http.server 18080 --bind 127.0.0.1 --directory /tmp/ingress-www"
+        : "busybox httpd -f -p 127.0.0.1:18080 -h /tmp/ingress-www";
 
     const launch = await vm.exec([
       "/bin/sh",
@@ -395,8 +412,7 @@ for (const backend of backends) {
       [
         "mkdir -p /tmp/ingress-www",
         "printf ingress-ok > /tmp/ingress-www/index.html",
-        "busybox httpd -f -p 127.0.0.1:18080 -h /tmp/ingress-www >/tmp/ingress-httpd.log 2>&1 & pid=$!",
-        "echo $pid > /tmp/ingress-httpd.pid",
+        `${launchCommand} >/tmp/ingress-httpd.log 2>&1 &`,
       ].join("; "),
     ]);
     assert.equal(
@@ -405,27 +421,31 @@ for (const backend of backends) {
       launch.stderr || "failed to launch ingress httpd",
     );
 
-    t.after(async () => {
-      try {
-        await vm.exec([
-          "/bin/sh",
-          "-lc",
-          "kill $(cat /tmp/ingress-httpd.pid) >/dev/null 2>&1 || true",
-        ]);
-      } catch {
-        // ignore best-effort cleanup errors
-      }
-    });
+    // Wait until the guest server answers locally so failures below are
+    // attributable to the ingress path rather than server startup.
+    const ready = await vm.exec([
+      "/bin/sh",
+      "-lc",
+      [
+        "for i in $(seq 1 100); do",
+        "  if wget -qO- http://127.0.0.1:18080/ 2>/dev/null | grep -q ingress-ok; then exit 0; fi;",
+        "  sleep 0.1;",
+        "done;",
+        "cat /tmp/ingress-httpd.log >&2; exit 1",
+      ].join(" "),
+    ]);
+    assert.equal(
+      ready.exitCode,
+      0,
+      `guest http server did not become ready: ${ready.stderr}`,
+    );
 
     vm.setIngressRoutes([{ prefix: "/", port: 18080, stripPrefix: true }]);
-
-    const access = await vm.enableIngress();
-    t.after(async () => {
-      await access.close();
-    });
+    access = await vm.enableIngress();
 
     let status = 0;
     let body = "";
+    let lastError: unknown = null;
     for (let attempt = 0; attempt < 10; attempt += 1) {
       try {
         const response = await fetch(new URL("/", access.url), {
@@ -436,17 +456,18 @@ for (const backend of backends) {
         if (status === 200 && body.includes("ingress-ok")) {
           break;
         }
-      } catch {
-        // ingress gateway or guest server may still be starting
+      } catch (error) {
+        // ingress gateway may still be starting
+        lastError = error;
       }
       await delay(50);
     }
 
-    if (status !== 200 || !/ingress-ok/.test(body)) {
-      t.skip(
-        `ingress proxy path unavailable (status=${status}, body=${JSON.stringify(body.slice(0, 200))})`,
-      );
-      return;
-    }
+    assert.equal(
+      status,
+      200,
+      `ingress proxy path failed (status=${status}, body=${JSON.stringify(body.slice(0, 200))}, error=${String(lastError)})`,
+    );
+    assert.match(body, /ingress-ok/);
   });
 }

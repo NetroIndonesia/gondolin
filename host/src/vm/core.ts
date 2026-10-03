@@ -238,6 +238,8 @@ export class VM {
   private readonly resolvedSandboxOptions: ResolvedSandboxServerOptions;
   private rootDisk: RootDiskState | null = null;
   private checkpointed = false;
+  /** whether `close()` was called; a closed vm must not be restarted */
+  private closed = false;
   private readonly baseOptionsForClone: VMOptions;
   private readonly defaultEnv: EnvInput | undefined;
   private connection: SandboxConnection | null = null;
@@ -593,6 +595,7 @@ export class VM {
    * Close the VM and release associated resources.
    */
   async close() {
+    this.closed = true;
     return this.closeSingleflight.run(() => this.closeInternal());
   }
 
@@ -1187,6 +1190,9 @@ fi
   }
 
   private async startInternal() {
+    if (this.closed) {
+      throw new Error("vm is closed and cannot be restarted");
+    }
     if (this.checkpointed) {
       throw new Error(
         "vm was checkpointed and cannot be restarted; resume the checkpoint instead",
@@ -1235,9 +1241,12 @@ fi
           if (this.startupGeneration !== cleanupGeneration) {
             return;
           }
-          void this.close().catch(() => {
-            // ignore close errors after startup timeout
-          });
+          // Tear down without marking the vm closed so start() can be retried.
+          void this.closeSingleflight
+            .run(() => this.closeInternal())
+            .catch(() => {
+              // ignore close errors after startup timeout
+            });
         }, 0);
       },
     );

@@ -10,6 +10,7 @@ All notable changes to Gondolin are documented here.
 - Drop the generated `dist/src/index.cjs` shim; CommonJS consumers now load the ESM entrypoint directly through Node's `require(esm)` support.
 - Upgrade guest and krun runner builds to Zig 0.17.0.  The krun runner now uses hand-written libkrun bindings instead of `@cImport`.
 - Fix cached sandbox helpers being rejected with a `gondolinVersion mismatch` after upgrading Gondolin when the new release reuses the same helper build.
+- `VM.close()` is now terminal: `start()`, `exec()` and friends on a closed VM reject with `vm is closed` instead of silently restarting the sandbox server and leaking its sockets.
 - `GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE=1` now always builds helpers from local Zig sources as documented, instead of only acting as a fallback when published helpers cannot be resolved.
 
 ## 0.12.0
