@@ -355,7 +355,7 @@ async function buildSandboxBinaryPathsFromSource(
       `Cannot build sandbox helpers from source because ${BUILD_SANDBOX_HELPERS_FROM_SOURCE_ENV}=1 was set, ` +
         "but guest sources were not found. Use a Gondolin checkout or set " +
         "GONDOLIN_GUEST_SRC. " +
-        "This contributor path requires Zig 0.16.0.",
+        "This contributor path requires Zig 0.17.0.",
     );
   }
 
@@ -366,7 +366,7 @@ async function buildSandboxBinaryPathsFromSource(
   } catch (error) {
     throw new Error(
       "Failed to build sandbox helpers from Zig sources. " +
-        "Install Zig 0.16.0 or unset " +
+        "Install Zig 0.17.0 or unset " +
         `${BUILD_SANDBOX_HELPERS_FROM_SOURCE_ENV} to use published helpers.\n` +
         `Cause: ${errorMessage(error)}`,
     );

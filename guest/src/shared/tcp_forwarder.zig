@@ -312,7 +312,7 @@ test "forwardBackendPayload closes connection when encoding fails after read" {
         .backend_shutdown = false,
     });
 
-    const payload = [_]u8{0xaa} ** 8192;
+    const payload: [8192]u8 = @splat(0xaa);
     const result = try forwardBackendPayload(
         allocator,
         &conns,
@@ -360,7 +360,7 @@ test "forwardBackendPayload propagates close failure when tcp_close cannot be en
 
     failing_allocator_state.fail_index = failing_allocator_state.alloc_index;
 
-    const payload = [_]u8{0xbb} ** 8192;
+    const payload: [8192]u8 = @splat(0xbb);
     try std.testing.expectError(error.OutOfMemory, forwardBackendPayload(
         allocator,
         &conns,
@@ -444,7 +444,7 @@ fn scanVirtioPorts(virtio_port_name: []const u8) !?posix.fd_t {
     while (try it.next(io)) |entry| {
         if (!std.mem.startsWith(u8, entry.name, "vport")) continue;
         if (!virtioPortMatches(entry.name, virtio_port_name)) continue;
-        const path = try std.fmt.bufPrint(&path_buf, "/dev/{s}", .{entry.name});
+        const path = try std.mem.print(&path_buf, "/dev/{s}", .{entry.name});
         if (try tryOpenVirtioPath(path)) |fd| return fd;
     }
 
@@ -453,7 +453,7 @@ fn scanVirtioPorts(virtio_port_name: []const u8) !?posix.fd_t {
 
 fn virtioPortMatches(port_name: []const u8, expected: []const u8) bool {
     var path_buf: [128]u8 = undefined;
-    const sys_path = std.fmt.bufPrint(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
+    const sys_path = std.mem.print(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
     const fd = posix.open(sys_path, .{ .ACCMODE = .RDONLY, .CLOEXEC = true }, 0) catch return false;
     defer posix.close(fd);
 
@@ -465,7 +465,7 @@ fn virtioPortMatches(port_name: []const u8, expected: []const u8) bool {
 
 fn openVirtioPort(virtio_port_name: []const u8, log: anytype) !posix.fd_t {
     var path_buf: [128]u8 = undefined;
-    const direct_path = try std.fmt.bufPrint(&path_buf, "/dev/virtio-ports/{s}", .{virtio_port_name});
+    const direct_path = try std.mem.print(&path_buf, "/dev/virtio-ports/{s}", .{virtio_port_name});
 
     var warned = false;
 

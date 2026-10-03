@@ -3,11 +3,14 @@ const sandboxd = @import("sandboxd");
 const protocol = sandboxd.protocol;
 const posix = sandboxd.posix;
 const file_requests = @import("file_requests.zig");
-const c = @cImport({
-    @cInclude("pty.h");
-    @cInclude("unistd.h");
-    @cInclude("sys/ioctl.h");
-});
+
+/// musl provides forkpty(3) in libc proper
+extern "c" fn forkpty(
+    amaster: *c_int,
+    name: ?[*]u8,
+    termp: ?*const anyopaque,
+    winp: ?*const std.posix.winsize,
+) c_int;
 
 const log = std.log.scoped(.sandboxd);
 
@@ -578,7 +581,7 @@ fn scanVirtioPorts() !?posix.fd_t {
     while (try it.next(io)) |entry| {
         if (!std.mem.startsWith(u8, entry.name, "vport")) continue;
         if (!virtioPortMatches(entry.name, "virtio-port")) continue;
-        const path = try std.fmt.bufPrint(&path_buf, "/dev/{s}", .{entry.name});
+        const path = try std.mem.print(&path_buf, "/dev/{s}", .{entry.name});
         if (try tryOpenVirtioPath(path)) |fd| return fd;
     }
 
@@ -587,7 +590,7 @@ fn scanVirtioPorts() !?posix.fd_t {
 
 fn virtioPortMatches(port_name: []const u8, expected: []const u8) bool {
     var path_buf: [128]u8 = undefined;
-    const sys_path = std.fmt.bufPrint(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
+    const sys_path = std.mem.print(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
     const fd = posix.open(sys_path, .{ .ACCMODE = .RDONLY, .CLOEXEC = true }, 0) catch return false;
     defer posix.close(fd);
 
@@ -676,7 +679,7 @@ fn runExecSession(session: *ExecSession) !void {
 
     if (use_pty) {
         var master: c_int = 0;
-        const forked = c.forkpty(&master, null, null, null);
+        const forked = forkpty(&master, null, null, null);
         if (forked < 0) {
             return error.OpenPtyFailed;
         }
@@ -1130,7 +1133,7 @@ fn bytesAvailable(fd: posix.fd_t) ?usize {
     // truncation.
     var attempts: usize = 0;
     while (true) : (attempts += 1) {
-        const rc = c.ioctl(fd, c.FIONREAD, &n);
+        const rc = std.c.ioctl(fd, @bitCast(@as(u32, std.c.T.FIONREAD)), &n);
         if (rc == 0) break;
         const err = posix.errno(rc);
         if (err == .INTR and attempts < 3) continue;
@@ -1142,18 +1145,18 @@ fn bytesAvailable(fd: posix.fd_t) ?usize {
 }
 
 fn applyPtyResize(fd: posix.fd_t, rows: u32, cols: u32) void {
-    const Field = @TypeOf(@as(c.struct_winsize, undefined).ws_row);
+    const Field = @TypeOf(@as(std.posix.winsize, undefined).row);
     const max = std.math.maxInt(Field);
     const safe_rows: Field = @intCast(if (rows > max) max else rows);
     const safe_cols: Field = @intCast(if (cols > max) max else cols);
 
-    var winsize = c.struct_winsize{
-        .ws_row = safe_rows,
-        .ws_col = safe_cols,
-        .ws_xpixel = 0,
-        .ws_ypixel = 0,
+    var winsize: std.posix.winsize = .{
+        .row = safe_rows,
+        .col = safe_cols,
+        .xpixel = 0,
+        .ypixel = 0,
     };
-    _ = c.ioctl(fd, c.TIOCSWINSZ, &winsize);
+    _ = std.c.ioctl(fd, @bitCast(@as(u32, std.c.T.IOCSWINSZ)), &winsize);
 }
 
 fn flushWriter(virtio_fd: posix.fd_t, writer: *protocol.FrameWriter) !void {
@@ -1178,7 +1181,7 @@ fn parseStatus(status: u32) Termination {
         return .{ .exit_code = @as(i32, @intCast(posix.W.EXITSTATUS(status))), .signal = null };
     }
     if (posix.W.IFSIGNALED(status)) {
-        const sig = @as(i32, @intCast(@intFromEnum(posix.W.TERMSIG(status))));
+        const sig = @as(i32, @intCast(@backingInt(posix.W.TERMSIG(status))));
         return .{ .exit_code = 128 + sig, .signal = sig };
     }
     return .{ .exit_code = 1, .signal = null };
@@ -1191,9 +1194,9 @@ fn buildArgv(
 ) ![*:null]const ?[*:0]const u8 {
     const total = argv.len + 1;
     const argv_buf = try allocator.allocSentinel(?[*:0]const u8, total, null);
-    argv_buf[0] = (try allocator.dupeZ(u8, cmd)).ptr;
+    argv_buf[0] = (try allocator.dupeSentinel(u8, cmd, 0)).ptr;
     for (argv, 0..) |arg, idx| {
-        argv_buf[idx + 1] = (try allocator.dupeZ(u8, arg)).ptr;
+        argv_buf[idx + 1] = (try allocator.dupeSentinel(u8, arg, 0)).ptr;
     }
     return argv_buf.ptr;
 }
@@ -1219,7 +1222,7 @@ fn buildEnvp(
 
     for (env) |entry| {
         if (std.mem.findScalar(u8, entry, '=') == null) return protocol.ProtocolError.InvalidValue;
-        const entry_z = try arena.dupeZ(u8, entry);
+        const entry_z = try arena.dupeSentinel(u8, entry, 0);
         try entries.append(allocator, entry_z.ptr);
     }
 

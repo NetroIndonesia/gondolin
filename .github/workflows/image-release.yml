@@ -159,7 +159,7 @@ jobs:
           cache: pnpm
 
       - name: Install Zig
-        run: scripts/install-zig.sh 0.16.0
+        run: scripts/install-zig.sh 0.17.0
 
       - name: Install dependencies
         run: |

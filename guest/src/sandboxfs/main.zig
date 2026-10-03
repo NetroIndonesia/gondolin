@@ -278,7 +278,7 @@ const SandboxFs = struct {
             .allocator = allocator,
             .fuse_fd = fuse_fd,
             .rpc = rpc,
-            .unsupported_opcode_logged = [_]bool{false} ** 256,
+            .unsupported_opcode_logged = @splat(false),
         };
     }
 
@@ -351,7 +351,7 @@ const SandboxFs = struct {
         const opcode = header.opcode;
         if (opcode < self.unsupported_opcode_logged.len and !self.unsupported_opcode_logged[opcode]) {
             self.unsupported_opcode_logged[opcode] = true;
-            log.warn("unsupported fuse opcode {} -> errno {}", .{ opcode, @intFromEnum(err) });
+            log.warn("unsupported fuse opcode {} -> errno {}", .{ opcode, @backingInt(err) });
         }
         try sendError(self.fuse_fd, header.unique, err);
     }
@@ -373,7 +373,7 @@ const SandboxFs = struct {
             .max_pages = 0,
             .map_alignment = 0,
             .flags2 = 0,
-            .unused = .{0} ** 7,
+            .unused = @splat(0),
         };
 
         try sendResponse(self.fuse_fd, header.unique, 0, std.mem.asBytes(&out));
@@ -1090,7 +1090,7 @@ pub fn main(init: std.process.Init) !void {
 }
 
 fn mountFuse(allocator: std.mem.Allocator, fuse_fd: posix.fd_t, mount_point: []const u8) !void {
-    const data = try std.fmt.allocPrint(allocator, "fd={d},rootmode=40000,user_id=0,group_id=0,default_permissions", .{fuse_fd});
+    const data = try allocator.print("fd={d},rootmode=40000,user_id=0,group_id=0,default_permissions", .{fuse_fd});
     defer allocator.free(data);
     const data_z = try makeZ(allocator, data);
     defer allocator.free(data_z);
@@ -1141,7 +1141,7 @@ fn openVirtioPortByName(expected: []const u8) ?posix.fd_t {
     while (it.next(io) catch null) |entry| {
         if (!std.mem.startsWith(u8, entry.name, "vport")) continue;
         if (!virtioPortMatches(entry.name, expected)) continue;
-        const path = std.fmt.bufPrint(&path_buf, "/dev/{s}", .{entry.name}) catch continue;
+        const path = std.mem.print(&path_buf, "/dev/{s}", .{entry.name}) catch continue;
         return posix.open(path, .{ .ACCMODE = .RDWR, .CLOEXEC = true }, 0) catch continue;
     }
 
@@ -1150,7 +1150,7 @@ fn openVirtioPortByName(expected: []const u8) ?posix.fd_t {
 
 fn virtioPortMatches(port_name: []const u8, expected: []const u8) bool {
     var path_buf: [128]u8 = undefined;
-    const sys_path = std.fmt.bufPrint(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
+    const sys_path = std.mem.print(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
     const fd = posix.open(sys_path, .{ .ACCMODE = .RDONLY, .CLOEXEC = true }, 0) catch return false;
     defer posix.close(fd);
 
@@ -1390,13 +1390,13 @@ fn alignDirent(len: usize) usize {
 
 fn errnoFromResponse(err: i32) std.os.linux.E {
     const code: i32 = if (err < 0) -err else err;
-    return @enumFromInt(@as(u16, @intCast(code)));
+    return @fromBackingInt(@as(u16, @intCast(code)));
 }
 
 fn sendError(fd: posix.fd_t, unique: u64, err: std.os.linux.E) !void {
     var out = FuseOutHeader{
         .len = @sizeOf(FuseOutHeader),
-        .@"error" = -@as(i32, @intCast(@intFromEnum(err))),
+        .@"error" = -@as(i32, @intCast(@backingInt(err))),
         .unique = unique,
     };
     try writeAll(fd, std.mem.asBytes(&out));
@@ -1641,7 +1641,7 @@ fn defaultStatfs() FuseStatfsOut {
         .namelen = 255,
         .frsize = 4096,
         .padding = 0,
-        .spare = .{0} ** 6,
+        .spare = @splat(0),
     } };
 }
 
