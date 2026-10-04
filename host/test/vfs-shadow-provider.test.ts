@@ -118,3 +118,42 @@ test("ShadowProvider denies symlink bypass by default", async (t) => {
   await assert.rejects(async () => vfs.open("/link", "r"), isENOENT);
   await assert.rejects(async () => vfs.stat("/link"), isENOENT);
 });
+
+test("ShadowProvider (tmpfs mode) mkdir works when only the parent is in the backend", async () => {
+  const backend = new MemoryProvider();
+  await backend.mkdir("/project/doc/examples", { recursive: true });
+
+  const shouldShadow = ({ path }: { path: string }) =>
+    /\/pc-uninstalled(\/|$)/.test(path);
+  const vfs = new ShadowProvider(backend, { shouldShadow, writeMode: "tmpfs" });
+
+  await vfs.mkdir("/project/doc/examples/pc-uninstalled");
+  assert.ok(
+    (await vfs.stat("/project/doc/examples/pc-uninstalled")).isDirectory(),
+  );
+  assert.ok(
+    (await vfs.readdir("/project/doc/examples")).includes("pc-uninstalled"),
+  );
+  await assert.rejects(
+    () => backend.stat("/project/doc/examples/pc-uninstalled"),
+    isENOENT,
+  );
+
+  // mkdir on an existing shadowed directory still fails with EEXIST
+  await assert.rejects(
+    () => vfs.mkdir("/project/doc/examples/pc-uninstalled"),
+    (err: NodeJS.ErrnoException) => err.code === "EEXIST",
+  );
+
+  // missing parents still fail with ENOENT
+  await assert.rejects(() => vfs.mkdir("/missing/pc-uninstalled"), isENOENT);
+
+  const syncVfs = new ShadowProvider(backend, {
+    shouldShadow,
+    writeMode: "tmpfs",
+  });
+  syncVfs.mkdirSync("/project/doc/examples/pc-uninstalled");
+  assert.ok(
+    syncVfs.statSync("/project/doc/examples/pc-uninstalled").isDirectory(),
+  );
+});

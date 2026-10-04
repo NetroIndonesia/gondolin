@@ -383,7 +383,10 @@ export class ShadowProvider
       this.shadowedFor("mkdir", p) ||
       (await this.resolvesToShadowed("mkdir", p))
     ) {
-      return this.writeShadowed("mkdir", p, () => this.tmpfs.mkdir(p, options));
+      return this.writeShadowed("mkdir", p, async () => {
+        await this.ensureUpperParent(p);
+        return this.tmpfs.mkdir(p, options);
+      });
     }
 
     return this.backend.mkdir(p, options);
@@ -396,9 +399,10 @@ export class ShadowProvider
       this.shadowedFor("mkdir", p) ||
       this.resolvesToShadowedSync("mkdir", p)
     ) {
-      return this.writeShadowedSync("mkdir", p, () =>
-        this.tmpfs.mkdirSync(p, options),
-      );
+      return this.writeShadowedSync("mkdir", p, () => {
+        this.ensureUpperParentSync(p);
+        return this.tmpfs.mkdirSync(p, options);
+      });
     }
 
     return this.backend.mkdirSync(p, options);
@@ -850,6 +854,51 @@ export class ShadowProvider
     } catch (err) {
       if (isNoEntryError(err)) return [];
       throw err;
+    }
+  }
+
+  /**
+   * Materialize the parent of a shadowed path in tmpfs when the parent only
+   * exists in the backend, so a non-recursive shadowed `mkdir` does not fail
+   * with `ENOENT`.  The upper parent stays invisible because the parent itself
+   * is not shadowed.
+   */
+  private async ensureUpperParent(entryPath: string) {
+    const parent = path.posix.dirname(entryPath);
+    if (parent === entryPath) return;
+    try {
+      await this.tmpfs.stat(parent);
+      return;
+    } catch (err) {
+      if (!isNoEntryError(err)) throw err;
+    }
+    const st = await this.stat(parent).catch((err: unknown) => {
+      if (isNoEntryError(err)) return null;
+      throw err;
+    });
+    if (st?.isDirectory()) {
+      await this.tmpfs.mkdir(parent, { recursive: true });
+    }
+  }
+
+  private ensureUpperParentSync(entryPath: string) {
+    const parent = path.posix.dirname(entryPath);
+    if (parent === entryPath) return;
+    try {
+      this.tmpfs.statSync(parent);
+      return;
+    } catch (err) {
+      if (!isNoEntryError(err)) throw err;
+    }
+    let isDirectory: boolean;
+    try {
+      isDirectory = this.statSync(parent).isDirectory();
+    } catch (err) {
+      if (isNoEntryError(err)) return;
+      throw err;
+    }
+    if (isDirectory) {
+      this.tmpfs.mkdirSync(parent, { recursive: true });
     }
   }
 
