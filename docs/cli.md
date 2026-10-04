@@ -414,16 +414,18 @@ Per-command flags apply to the most recent `--cmd`:
 
 ### Socket Mode (Advanced)
 
-If you already have a running sandbox server and a virtio control socket path,
-you can send exec requests without creating a VM:
+To run non-interactive commands in an already running Gondolin session (for
+example one started with `gondolin bash`), pass its session id (or a unique
+prefix, as shown by `gondolin list`) or the path to its session IPC socket:
 
 ```bash
-gondolin exec --sock /path/to/virtio.sock -- COMMAND [ARGS...]
+gondolin exec --sock SESSION_ID -- COMMAND [ARGS...]
+gondolin exec --sock /path/to/session.sock -- COMMAND [ARGS...]
 ```
 
-This is primarily useful when you manage the VM lifecycle yourself (for example
-via the programmatic `SandboxServer`/`VM` APIs) and want a separate process to
-issue exec requests.
+No VM is created; command output is written to stdout/stderr and the process
+exits with the command's exit code.  Use `gondolin attach` for interactive
+shells.
 
 ### `gondolin build`
 
