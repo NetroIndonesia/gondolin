@@ -7,8 +7,7 @@ import { execFileSync } from "node:child_process";
 import { buildAlpineImages } from "./alpine.ts";
 import { gondolinCacheDir } from "../cache.ts";
 import { type Architecture, type BuildConfig, hasOciRootfs } from "./config.ts";
-import { parseApkIndex } from "../alpine/packages.ts";
-import { decompressTarGz, extractTarGz, parseTar } from "../alpine/tar.ts";
+import { extractTarGz, parseTar } from "../alpine/tar.ts";
 import { downloadFile, DownloadFileError } from "../alpine/utils.ts";
 import {
   DEFAULT_ROOTFS_PACKAGES,
@@ -83,7 +82,7 @@ export async function buildNative(
     log("Ignoring alpine.rootfsPackages because oci rootfs source is enabled");
   }
 
-  const { kernelPackage } = resolveKernelConfig(alpineConfig);
+  const { kernelPackage, kernelImage } = resolveKernelConfig(alpineConfig);
   if (!hasOciRootfs(config)) {
     warnOnKernelPackageMismatch(alpineConfig.rootfsPackages, kernelPackage);
   }
@@ -135,6 +134,7 @@ export async function buildNative(
     ociRootfs: config.oci,
     rootfsPackages: alpineConfig.rootfsPackages,
     initramfsPackages: alpineConfig.initramfsPackages,
+    kernelImage,
     sandboxdBin: binaries.sandboxdPath,
     sandboxfsBin: binaries.sandboxfsPath,
     sandboxsshBin: binaries.sandboxsshPath,
@@ -152,9 +152,6 @@ export async function buildNative(
     log,
   });
 
-  log("Fetching kernel...");
-  await fetchKernel(workDir, config.arch, alpineConfig, cacheDir, log);
-
   log("Fetching libkrunfw-compatible kernel...");
   await fetchKrunBootAssets(
     workDir,
@@ -166,7 +163,7 @@ export async function buildNative(
 
   log("Copying assets to output directory...");
 
-  const kernelSrc = path.join(workDir, KERNEL_FILENAME);
+  const kernelSrc = alpineBuild.kernel;
   const initramfsSrc = path.join(workDir, INITRAMFS_FILENAME);
   const rootfsSrc = path.join(workDir, ROOTFS_FILENAME);
   const krunKernelSrc = path.join(workDir, KRUN_KERNEL_FILENAME);
@@ -232,83 +229,9 @@ function warnOnKernelPackageMismatch(
   if (!rootfsPackages.includes(kernelPackage)) {
     process.stderr.write(
       `Warning: rootfsPackages does not include kernel package '${kernelPackage}'. ` +
-        "This may cause module mismatches at boot.\n",
+        "The kernel image and its modules are taken from that package, so the build will fail unless another package installs them.\n",
     );
   }
-}
-
-async function fetchKernel(
-  outputDir: string,
-  arch: Architecture,
-  alpineConfig: ResolvedAlpineConfig,
-  cacheDir: string,
-  log: (msg: string) => void,
-): Promise<void> {
-  const kernelPath = path.join(outputDir, KERNEL_FILENAME);
-
-  if (fs.existsSync(kernelPath)) {
-    log("Kernel already present, skipping download");
-    return;
-  }
-
-  const version = alpineConfig.version;
-  const branch =
-    alpineConfig.branch ?? `v${version.split(".").slice(0, 2).join(".")}`;
-  const mirror = alpineConfig.mirror ?? "https://dl-cdn.alpinelinux.org/alpine";
-  const { kernelPackage, kernelImage } = resolveKernelConfig(alpineConfig);
-
-  log(`Fetching ${kernelPackage} from Alpine ${branch} (${arch})`);
-
-  fs.mkdirSync(cacheDir, { recursive: true });
-
-  const indexTarPath = path.join(
-    cacheDir,
-    `APKINDEX-main-${branch}-${arch}.tar.gz`,
-  );
-  const indexUrl = `${mirror}/${branch}/main/${arch}/APKINDEX.tar.gz`;
-
-  if (!fs.existsSync(indexTarPath)) {
-    await downloadFile(indexUrl, indexTarPath);
-  }
-
-  const raw = await decompressTarGz(indexTarPath);
-  const tarEntries = parseTar(raw);
-  const indexEntry = tarEntries.find((e) => e.name === "APKINDEX" && e.content);
-  if (!indexEntry?.content) {
-    throw new Error("APKINDEX not found in index tarball");
-  }
-
-  const pkgs = parseApkIndex(indexEntry.content.toString("utf8"));
-  const kernelMeta = pkgs.find((p) => p.P === kernelPackage);
-
-  if (!kernelMeta) {
-    throw new Error(`Failed to find ${kernelPackage} in APKINDEX`);
-  }
-
-  const kernelVersion = kernelMeta.V;
-  log(`Found ${kernelPackage} version: ${kernelVersion}`);
-
-  const apkFilename = `${kernelPackage}-${kernelVersion}.apk`;
-  const apkPath = path.join(cacheDir, `${arch}-${apkFilename}`);
-
-  if (!fs.existsSync(apkPath)) {
-    const apkUrl = `${mirror}/${branch}/main/${arch}/${apkFilename}`;
-    await downloadFile(apkUrl, apkPath);
-  }
-
-  const apkRaw = await decompressTarGz(apkPath);
-  const apkEntries = parseTar(apkRaw);
-  const kernelEntry = apkEntries.find(
-    (e) => e.name === `boot/${kernelImage}` && e.content,
-  );
-
-  if (!kernelEntry?.content) {
-    throw new Error(
-      `Kernel image 'boot/${kernelImage}' not found in ${apkFilename}`,
-    );
-  }
-
-  fs.writeFileSync(kernelPath, kernelEntry.content);
 }
 
 type KrunArchive = {
