@@ -29,6 +29,7 @@ All notable changes to Gondolin are documented here.
 - Fix `gondolin build` producing rootfs images that are too small when the build directory is on a compressing filesystem (zfs, btrfs): the size estimate now uses apparent file sizes instead of `du`.  #142
 - Fix `ShadowProvider` (`writeMode: "tmpfs"`) failing with `ENOENT` when creating a shadowed directory whose parent only exists in the backend.  #126
 - Create the standard `/dev/fd`, `/dev/stdin`, `/dev/stdout` and `/dev/stderr` symlinks in the guest so bash process substitution works (requires rebuilding images).  #118
+- Bind-mount `/dev` into the `postBuild.commands` chroot so commands can use `/dev/null` and friends.  #153
 
 ## 0.12.0
 

@@ -262,9 +262,11 @@ export function runPostBuildCommands(
 
   const cleanupResolvConf = ensureResolvConf(root);
   let cleanupProc = () => {};
+  let cleanupDev = () => {};
 
   try {
     cleanupProc = ensureProcMounted(root);
+    cleanupDev = ensureDevMounted(root);
 
     for (let i = 0; i < commands.length; i += 1) {
       const command = commands[i];
@@ -303,8 +305,12 @@ export function runPostBuildCommands(
       }
     }
   } finally {
-    cleanupProc();
-    cleanupResolvConf();
+    try {
+      cleanupDev();
+      cleanupProc();
+    } finally {
+      cleanupResolvConf();
+    }
   }
 }
 
@@ -340,11 +346,28 @@ function ensureResolvConf(rootfsDir: string): () => void {
 }
 
 function ensureProcMounted(rootfsDir: string): () => void {
-  const rootfsProc = path.join(rootfsDir, "proc");
-  fs.mkdirSync(rootfsProc, { recursive: true });
+  return mountInRootfs(rootfsDir, "proc", ["-t", "proc", "proc"], "procfs");
+}
+
+/**
+ * Bind-mount the build environment's `/dev` so commands can use `/dev/null`,
+ * `/dev/urandom` and friends.  The minirootfs ships an empty `/dev`.
+ */
+function ensureDevMounted(rootfsDir: string): () => void {
+  return mountInRootfs(rootfsDir, "dev", ["-o", "bind", "/dev"], "/dev");
+}
+
+function mountInRootfs(
+  rootfsDir: string,
+  subdir: string,
+  mountArgs: string[],
+  description: string,
+): () => void {
+  const target = path.join(rootfsDir, subdir);
+  fs.mkdirSync(target, { recursive: true });
 
   try {
-    execFileSync("mount", ["-t", "proc", "proc", rootfsProc], {
+    execFileSync("mount", [...mountArgs, target], {
       stdio: ["ignore", "pipe", "pipe"],
     });
   } catch (err) {
@@ -358,7 +381,7 @@ function ensureProcMounted(rootfsDir: string): () => void {
     const detail = stderr || stdout;
 
     throw new Error(
-      `postBuild.commands requires mounting procfs in the chroot, but mounting '${rootfsProc}' failed` +
+      `postBuild.commands requires mounting ${description} in the chroot, but mounting '${target}' failed` +
         ` (exit ${String(e.status ?? "?")})` +
         (detail ? `: ${detail}` : "") +
         ". Ensure the build runs as root with mount permissions (native Linux root or privileged container).",
@@ -366,12 +389,17 @@ function ensureProcMounted(rootfsDir: string): () => void {
   }
 
   return () => {
-    try {
-      execFileSync("umount", [rootfsProc], {
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-    } catch {
-      // Best effort cleanup.
+    for (const args of [[target], ["-l", target]]) {
+      try {
+        execFileSync("umount", args, {
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        return;
+      } catch {
+        // retry with a lazy unmount
+      }
     }
+    // A leftover mount would leak build-host files into the image.
+    throw new Error(`failed to unmount '${target}' after postBuild.commands`);
   };
 }

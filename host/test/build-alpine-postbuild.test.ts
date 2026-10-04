@@ -63,16 +63,13 @@ test("postBuild: mounts procfs before running chroot commands", () => {
       .split("\n")
       .filter(Boolean);
 
-    assert.equal(lines.length, 3);
-    assert.equal(
-      lines[0],
+    assert.deepEqual(lines, [
       `mount -t proc proc ${path.join(rootfsDir, "proc")}`,
-    );
-    assert.equal(
-      lines[1],
+      `mount -o bind /dev ${path.join(rootfsDir, "dev")}`,
       `chroot ${path.resolve(rootfsDir)} /bin/sh -lc echo hello`,
-    );
-    assert.equal(lines[2], `umount ${path.join(rootfsDir, "proc")}`);
+      `umount ${path.join(rootfsDir, "dev")}`,
+      `umount ${path.join(rootfsDir, "proc")}`,
+    ]);
   } finally {
     process.env.PATH = oldPath;
     process.env.CALL_LOG = oldCallLog;
@@ -136,11 +133,13 @@ test("postBuild: unmounts procfs even when a command fails", () => {
       .split("\n")
       .filter(Boolean);
 
-    assert.equal(
-      lines[0],
+    assert.deepEqual(lines, [
       `mount -t proc proc ${path.join(rootfsDir, "proc")}`,
-    );
-    assert.equal(lines[2], `umount ${path.join(rootfsDir, "proc")}`);
+      `mount -o bind /dev ${path.join(rootfsDir, "dev")}`,
+      `chroot ${path.resolve(rootfsDir)} /bin/sh -lc echo broken`,
+      `umount ${path.join(rootfsDir, "dev")}`,
+      `umount ${path.join(rootfsDir, "proc")}`,
+    ]);
   } finally {
     process.env.PATH = oldPath;
     process.env.CALL_LOG = oldCallLog;
@@ -196,9 +195,9 @@ test("postBuild: accepts /bin/sh absolute symlinks inside rootfs", () => {
       .split("\n")
       .filter(Boolean);
 
-    assert.equal(lines.length, 3);
+    assert.equal(lines.length, 5);
     assert.equal(
-      lines[1],
+      lines[2],
       `chroot ${path.resolve(rootfsDir)} /bin/sh -lc echo shell`,
     );
   } finally {
