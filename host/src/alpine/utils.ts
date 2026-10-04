@@ -368,31 +368,40 @@ export function createInitramfs(sourceDir: string, outputPath: string): void {
   );
 }
 
-function getDirSizeKb(dir: string): number {
-  try {
-    const output = execFileSync("du", ["-sk", dir], {
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return parseInt(output.split(/\s/)[0], 10) || 0;
-  } catch {
-    return Math.ceil(walkDirSize(dir) / 1024);
-  }
+const EXT4_BLOCK_SIZE = 4096;
+
+/**
+ * Estimate the space a directory tree needs on ext4 in `KiB`.
+ *
+ * This intentionally does not use `du`: on compressing filesystems (zfs,
+ * btrfs) `du` reports the compressed on-disk usage, which under-sizes the
+ * ext4 image.  Instead we sum apparent sizes rounded up to whole ext4 blocks.
+ */
+export function getDirSizeKb(dir: string): number {
+  const seen = new Set<string>();
+  return Math.ceil(walkDirSize(dir, seen) / 1024);
 }
 
-function walkDirSize(dir: string): number {
-  let size = 0;
+function roundUpToBlock(size: number): number {
+  return Math.ceil(size / EXT4_BLOCK_SIZE) * EXT4_BLOCK_SIZE;
+}
+
+function walkDirSize(dir: string, seen: Set<string>): number {
+  let size = EXT4_BLOCK_SIZE;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isSymbolicLink()) {
+    const st = fs.lstatSync(full);
+    if (st.isDirectory()) {
+      size += walkDirSize(full, seen);
       continue;
     }
-    if (entry.isDirectory()) {
-      size += walkDirSize(full);
-      continue;
+    if (st.nlink > 1) {
+      const key = `${st.dev}:${st.ino}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
     }
-    if (entry.isFile()) {
-      size += fs.statSync(full).size;
+    if (st.isFile() || st.isSymbolicLink()) {
+      size += roundUpToBlock(st.size);
     }
   }
   return size;
