@@ -90,6 +90,8 @@ export class FsRpcService {
     Promise<Array<string | Dirent>>
   >();
   private readdirCacheVersion = 0;
+  /** tail of the request chain; requests run strictly one after another */
+  private requestQueue: Promise<unknown> = Promise.resolve();
   private readonly logger?: (message: string) => void;
   private readonly provider: VirtualProvider;
   readonly metrics: FsRpcMetrics = {
@@ -107,7 +109,23 @@ export class FsRpcService {
     this.inoToPaths.set(1, new Set(["/"]));
   }
 
-  async handleRequest(message: FsRequest): Promise<FsResponse> {
+  /**
+   * Handle one fs-rpc request.
+   *
+   * Requests are processed strictly in arrival order, one at a time.  Path
+   * based providers (notably `RealFSProvider`) validate a path and then use it
+   * in a separate syscall; if a guest could pipeline a mutation (e.g. swapping
+   * a directory for one containing a symlink) between those two steps, host
+   * operations could escape the mount root.  `sandboxfs` only ever has one
+   * request in flight, so serializing costs nothing for well-behaved guests.
+   */
+  handleRequest(message: FsRequest): Promise<FsResponse> {
+    const result = this.requestQueue.then(() => this.handleRequestNow(message));
+    this.requestQueue = result.catch(() => undefined);
+    return result;
+  }
+
+  private async handleRequestNow(message: FsRequest): Promise<FsResponse> {
     const start = Date.now();
     const op = message.p.op;
     let err = 0;

@@ -4,6 +4,8 @@ All notable changes to Gondolin are documented here.
 
 ## Unreleased
 
+- Fix a TOCTOU race in VFS path validation: fs-rpc requests are now processed strictly in order, so a guest pipelining requests can no longer swap a directory between `RealFSProvider`'s path check and the host syscall to reach files outside the mount root.  #143
+
 ## 0.13.0
 
 - Add a `tmpfs` VM option to configure the scratch tmpfs mounts created by the guest `/init` (`/root`, `/tmp`, `/var/tmp`, `/var/cache`, `/var/log` by default), including per-mount `size` and `mode`.  `tmpfs: {}` keeps those paths on the root disk so cache-heavy workloads no longer consume guest RAM.  Requires a guest image built with this version.  #133

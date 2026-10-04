@@ -932,6 +932,114 @@ test("fs rpc link creates hard links with RealFSProvider", async () => {
   }
 });
 
+test("fs rpc processes pipelined requests strictly in order", async () => {
+  const base = new MemoryProvider();
+  base.writeFileSync!("/a.txt", "a");
+  base.writeFileSync!("/b.txt", "b");
+  let releaseFirst!: () => void;
+  const firstBlocked = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const events: string[] = [];
+  const provider = new Proxy(base as any, {
+    get(target, prop, receiver) {
+      if (prop === "lstat") {
+        return async (p: string) => {
+          events.push(`start ${p}`);
+          if (p === "/a.txt") await firstBlocked;
+          events.push(`end ${p}`);
+          return target.lstat(p);
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  const service = new FsRpcService(provider);
+
+  const first = send(service, "lookup", { parent_ino: 1, name: "a.txt" }, 1);
+  const second = send(service, "lookup", { parent_ino: 1, name: "b.txt" }, 2);
+  await delay(10);
+  assert.deepEqual(events, ["start /a.txt"]);
+  releaseFirst();
+  const [r1, r2] = await Promise.all([first, second]);
+  assert.equal(r1.p.err, 0);
+  assert.equal(r2.p.err, 0);
+  assert.deepEqual(events, [
+    "start /a.txt",
+    "end /a.txt",
+    "start /b.txt",
+    "end /b.txt",
+  ]);
+
+  await service.close();
+});
+
+test("fs rpc pipelined rename cannot redirect RealFSProvider creates outside the root", async () => {
+  const base = await fs.mkdtemp(
+    path.join(os.tmpdir(), "gondolin-fs-rpc-toctou-"),
+  );
+  const root = path.join(base, "root");
+  const outside = path.join(base, "outside");
+  await fs.mkdir(root);
+  await fs.mkdir(outside);
+  await fs.writeFile(path.join(outside, "secret"), "outside");
+  const service = new FsRpcService(new RealFSProvider(root));
+
+  try {
+    for (let i = 0; i < 50; i++) {
+      await fs.rm(path.join(root, "x"), { recursive: true, force: true });
+      await fs.rm(path.join(root, "y"), { recursive: true, force: true });
+      await fs.mkdir(path.join(root, "x"));
+      await fs.mkdir(path.join(root, "y"));
+      await fs.symlink(
+        path.join(outside, "secret"),
+        path.join(root, "y", "secret"),
+      );
+      const lookup = await send(service, "lookup", {
+        parent_ino: 1,
+        name: "x",
+      });
+      const xIno = (lookup.p.res?.entry as any).ino as number;
+
+      // A malicious guest can write frames back to back without waiting for
+      // responses.  The swap must not land between path validation and use.
+      const [, created] = await Promise.all([
+        send(service, "rename", {
+          old_parent_ino: 1,
+          old_name: "y",
+          new_parent_ino: 1,
+          new_name: "x",
+        }),
+        send(service, "create", {
+          parent_ino: xIno,
+          name: "secret",
+          mode: 0o644,
+          flags:
+            LINUX_OPEN_FLAGS.O_RDWR |
+            LINUX_OPEN_FLAGS.O_CREAT |
+            LINUX_OPEN_FLAGS.O_APPEND,
+        }),
+      ]);
+      if (created.p.err === 0) {
+        const fh = created.p.res?.fh as number;
+        const read = await send(service, "read", { fh, offset: 0, size: 64 });
+        await send(service, "release", { fh });
+        assert.notEqual(
+          Buffer.from(read.p.res?.data as Buffer).toString("utf8"),
+          "outside",
+        );
+      }
+    }
+    assert.equal(
+      await fs.readFile(path.join(outside, "secret"), "utf8"),
+      "outside",
+    );
+  } finally {
+    await service.close();
+    await fs.rm(base, { recursive: true, force: true });
+  }
+});
+
 test("fs rpc symlink returns ENOSYS when provider lacks symlink support", async () => {
   const base = new MemoryProvider();
   const provider = new Proxy(base as any, {
