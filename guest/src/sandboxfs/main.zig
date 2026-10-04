@@ -1054,6 +1054,7 @@ pub fn main(init: std.process.Init) !void {
 
     var mount_point: []const u8 = "/data";
     var rpc_path: []const u8 = "/dev/virtio-ports/virtio-fs";
+    var binds_file: ?[]const u8 = null;
 
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
@@ -1064,6 +1065,11 @@ pub fn main(init: std.process.Init) !void {
         }
         if (std.mem.eql(u8, args[i], "--rpc-path") and i + 1 < args.len) {
             rpc_path = args[i + 1];
+            i += 1;
+            continue;
+        }
+        if (std.mem.eql(u8, args[i], "--binds-file") and i + 1 < args.len) {
+            binds_file = args[i + 1];
             i += 1;
             continue;
         }
@@ -1081,6 +1087,16 @@ pub fn main(init: std.process.Init) !void {
         log.warn("rpc port {s} unavailable; running in stub mode", .{rpc_path});
     }
 
+    // The bind list is written before mounting so that init can rely on the
+    // file being complete once the fuse mount shows up in /proc/mounts.
+    if (binds_file) |path| {
+        if (rpc_client) |*rpc| {
+            writeBindsFile(allocator, rpc, path) catch |err| {
+                log.warn("unable to fetch bind mounts: {s}", .{@errorName(err)});
+            };
+        }
+    }
+
     try mountFuse(allocator, fuse_fd, mount_point);
     log.info("mounted sandboxfs at {s}", .{mount_point});
 
@@ -1091,6 +1107,44 @@ pub fn main(init: std.process.Init) !void {
         log.err("sandboxfs failed: {s}", .{@errorName(err)});
         return err;
     };
+}
+
+/// Fetch the bind mount list from the host and write it newline-separated to `path`.
+///
+/// The file is only created when the host supports the `mounts` op so that
+/// init can fall back to the legacy kernel cmdline list otherwise.
+fn writeBindsFile(allocator: std.mem.Allocator, rpc: *fs_rpc.FsRpcClient, path: []const u8) !void {
+    var response = try rpc.request("mounts", &.{});
+    defer response.deinit();
+
+    if (response.err != 0) {
+        return error.MountsUnavailable;
+    }
+
+    const res_map = response.res orelse return error.InvalidResponse;
+    const binds_val = cbor.getMapValue(res_map, "binds") orelse return error.InvalidResponse;
+    const binds = try expectArray(binds_val);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(allocator);
+    for (binds) |entry| {
+        const bind = try expectText(entry);
+        if (bind.len == 0 or bind[0] != '/' or std.mem.indexOfAny(u8, bind, "\n\x00") != null) {
+            return error.InvalidResponse;
+        }
+        try buf.appendSlice(allocator, bind);
+        try buf.append(allocator, '\n');
+    }
+
+    const fd = try posix.open(path, .{
+        .ACCMODE = .WRONLY,
+        .CREAT = true,
+        .TRUNC = true,
+        .CLOEXEC = true,
+    }, 0o644);
+    defer posix.close(fd);
+    try writeAll(fd, buf.items);
+    log.info("wrote {d} bind mounts to {s}", .{ binds.len, path });
 }
 
 fn mountFuse(allocator: std.mem.Allocator, fuse_fd: posix.fd_t, mount_point: []const u8) !void {

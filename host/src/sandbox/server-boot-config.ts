@@ -35,6 +35,9 @@ function normalizeMountPath(value: unknown, field: string): string {
   if (normalized.includes("\0")) {
     throw new Error(`${field} contains null bytes`);
   }
+  if (/[\r\n]/.test(normalized)) {
+    throw new Error(`${field} contains newlines`);
+  }
   return normalized;
 }
 
@@ -66,16 +69,75 @@ export function isSameSandboxFsConfig(
   return true;
 }
 
+/**
+ * Maximum kernel cmdline length in `bytes` up to which the legacy
+ * `sandboxfs.bind=` argument is still emitted.
+ *
+ * Linux truncates the cmdline at 2048 bytes on arm64/x86_64, and QEMU's x86
+ * microvm machine appends `virtio_mmio.device=` entries on its own, so this
+ * keeps some headroom.
+ */
+export const LEGACY_CMDLINE_BINDS_MAX_BYTES = 1536;
+
+/**
+ * Build the kernel cmdline for the guest.
+ *
+ * Current guests fetch the bind mount list from the host over the sandboxfs
+ * RPC channel (`mounts` op), which has no size limit. For older guest images
+ * the binds are also put on the cmdline (`sandboxfs.bind=`) as far as they fit
+ * without being truncated, with gondolin's own mounts (e.g. the MITM CA, which
+ * init needs early) first. Binds that are left out are still mounted later by
+ * the host-side fallback in the VM.
+ */
 export function buildSandboxfsAppend(
   baseAppend: string,
   config: SandboxFsConfig,
 ) {
-  const pieces = [baseAppend.trim(), `sandboxfs.mount=${config.fuseMount}`];
-  if (config.fuseBinds.length > 0) {
-    pieces.push(`sandboxfs.bind=${config.fuseBinds.join(",")}`);
+  const base = joinCmdline([baseAppend, `sandboxfs.mount=${config.fuseMount}`]);
+
+  const candidates = config.fuseBinds.filter(isCmdlineSafeBind).sort((a, b) => {
+    const aInternal = isInternalBind(a);
+    const bInternal = isInternalBind(b);
+    if (aInternal !== bInternal) return aInternal ? -1 : 1;
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
+
+  const prefix = " sandboxfs.bind=";
+  let length = Buffer.byteLength(base) + Buffer.byteLength(prefix);
+  const binds: string[] = [];
+  for (const bind of candidates) {
+    const extra = Buffer.byteLength(bind) + (binds.length > 0 ? 1 : 0);
+    if (length + extra > LEGACY_CMDLINE_BINDS_MAX_BYTES) continue;
+    binds.push(bind);
+    length += extra;
   }
+
+  if (binds.length === 0) return base;
+  // parents have to be bound before their children
+  binds.sort();
+  return `${base}${prefix}${binds.join(",")}`;
+}
+
+/** Build the result of the sandboxfs `mounts` rpc op */
+export function buildSandboxfsMountsResult(config: SandboxFsConfig) {
+  return {
+    mount: config.fuseMount,
+    binds: [...config.fuseBinds],
+  };
+}
+
+function isInternalBind(bind: string) {
+  return bind === "/etc/gondolin" || bind.startsWith("/etc/gondolin/");
+}
+
+function isCmdlineSafeBind(bind: string) {
+  // whitespace splits cmdline arguments and commas split the bind list
+  return !/[\s,"']/.test(bind);
+}
+
+function joinCmdline(pieces: string[]) {
   return pieces
+    .map((piece) => piece.trim())
     .filter((piece) => piece.length > 0)
-    .join(" ")
-    .trim();
+    .join(" ");
 }

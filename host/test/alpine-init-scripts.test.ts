@@ -36,3 +36,73 @@ test("rootfs init creates standard /dev symlinks idempotently", (t) => {
   // running again is a no-op
   execFileSync("sh", ["-euc", `log() { :; }\n${snippet}`]);
 });
+
+function runSandboxfsBindSnippet(
+  t: test.TestContext,
+  options: { bindsFile?: string; cmdlineBinds?: string },
+): string[] {
+  const start = ROOTFS_INIT_SCRIPT.indexOf(
+    'if [ ! -f "${sandboxfs_binds_file}" ]',
+  );
+  const endMarker = 'done < "${sandboxfs_binds_file}"\n    fi\n';
+  const end = ROOTFS_INIT_SCRIPT.indexOf(endMarker, start) + endMarker.length;
+  assert.ok(start >= 0 && end > start);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gondolin-binds-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const bindsFile = path.join(dir, "binds");
+  if (options.bindsFile !== undefined) {
+    fs.writeFileSync(bindsFile, options.bindsFile);
+  }
+
+  const output = execFileSync(
+    "sh",
+    [
+      "-euc",
+      [
+        "log() { :; }",
+        "mkdir() { :; }",
+        'log_cmd() { printf "%s|%s\\n" "$3" "$4"; }',
+        'sandboxfs_mount="/data"',
+        'sandboxfs_binds="$1"',
+        'sandboxfs_binds_file="$2"',
+        ROOTFS_INIT_SCRIPT.slice(start, end),
+      ].join("\n"),
+      "sh",
+      options.cmdlineBinds ?? "",
+      bindsFile,
+    ],
+    { encoding: "utf8" },
+  );
+  return output.split("\n").filter((line) => line.length > 0);
+}
+
+test("rootfs init binds sandboxfs mounts from the binds file", (t) => {
+  // the cmdline list is ignored when sandboxfs wrote the file
+  const binds = runSandboxfsBindSnippet(t, {
+    bindsFile: "/etc/gondolin/mitm\n/with space\n/with,comma\n",
+    cmdlineBinds: "/stale",
+  });
+  assert.deepEqual(binds, [
+    "/data/etc/gondolin/mitm|/etc/gondolin/mitm",
+    "/data/with space|/with space",
+    "/data/with,comma|/with,comma",
+  ]);
+});
+
+test("rootfs init falls back to cmdline sandboxfs binds", (t) => {
+  const binds = runSandboxfsBindSnippet(t, {
+    cmdlineBinds: "/etc/gondolin/mitm,/workspace",
+  });
+  assert.deepEqual(binds, [
+    "/data/etc/gondolin/mitm|/etc/gondolin/mitm",
+    "/data/workspace|/workspace",
+  ]);
+});
+
+test("rootfs init passes the binds file to sandboxfs", () => {
+  assert.match(
+    ROOTFS_INIT_SCRIPT,
+    /\/usr\/bin\/sandboxfs .*--binds-file "\$\{sandboxfs_binds_file\}"/,
+  );
+});

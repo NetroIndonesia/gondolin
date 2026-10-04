@@ -41,7 +41,10 @@ import {
   sendError,
   sendJson,
 } from "./client.ts";
-import type { SandboxFsConfig } from "./server-boot-config.ts";
+import {
+  buildSandboxfsMountsResult,
+  type SandboxFsConfig,
+} from "./server-boot-config.ts";
 import {
   type SandboxServerOps,
   installSandboxServerOps,
@@ -868,6 +871,29 @@ export class SandboxServer extends EventEmitter {
         try {
           const resume = this.resumeControllerForActivity();
           if (resume) await resume;
+
+          if (message.p.op === "mounts") {
+            // Bind mount list for guest init; served here instead of by the
+            // fs service because it is boot configuration, not vfs state.
+            const config = this.bootConfig;
+            this.fsBridge.send({
+              v: 1,
+              t: "fs_response",
+              id: message.id,
+              p: config
+                ? {
+                    op: message.p.op,
+                    err: 0,
+                    res: buildSandboxfsMountsResult(config),
+                  }
+                : {
+                    op: message.p.op,
+                    err: LINUX_ERRNO.EAGAIN,
+                    message: "boot configuration unavailable",
+                  },
+            });
+            return;
+          }
 
           if (!this.fsService) {
             this.fsBridge.send({

@@ -1659,8 +1659,8 @@ fi
 
   private async waitForMount(mountPoint: string, fsType?: string) {
     const mountCheck = fsType
-      ? `grep -q " $1 ${fsType} " /proc/mounts`
-      : `grep -q " $1 " /proc/mounts`;
+      ? `grep -qF -- " $2 ${fsType} " /proc/mounts`
+      : `grep -qF -- " $2 " /proc/mounts`;
     const script = `for i in $(seq 1 ${VFS_READY_ATTEMPTS}); do ${mountCheck} && exit 0; sleep ${VFS_READY_SLEEP_SECONDS}; done; exit 1`;
 
     // Use internal exec that bypasses VFS check
@@ -1670,6 +1670,7 @@ fi
       script,
       "sh",
       mountPoint,
+      escapeProcMountsPath(mountPoint),
     ]);
     if (result.exitCode !== 0) {
       throw new Error(
@@ -1686,7 +1687,7 @@ fi
     }
 
     const source = `${this.fuseMount}${mountPoint}`;
-    const script = `for i in $(seq 1 ${VFS_READY_ATTEMPTS}); do if grep -q " $1 " /proc/mounts; then exit 0; fi; mkdir -p "$1"; mount --bind "$2" "$1" > /dev/null 2>&1 || true; sleep ${VFS_READY_SLEEP_SECONDS}; done; exit 1`;
+    const script = `for i in $(seq 1 ${VFS_READY_ATTEMPTS}); do if grep -qF -- " $3 " /proc/mounts; then exit 0; fi; mkdir -p "$1"; mount --bind "$2" "$1" > /dev/null 2>&1 || true; sleep ${VFS_READY_SLEEP_SECONDS}; done; exit 1`;
 
     const result = await this.execInternalNoVfsWait([
       "/bin/sh",
@@ -1695,6 +1696,7 @@ fi
       "sh",
       mountPoint,
       source,
+      escapeProcMountsPath(mountPoint),
     ]);
     if (result.exitCode !== 0) {
       throw new Error(
@@ -2230,6 +2232,13 @@ function resolveVmVfs(
   }
 
   return { provider: wrapProvider(provider, hooks), mounts };
+}
+
+/** Escape a path the way the kernel prints it in `/proc/mounts` */
+function escapeProcMountsPath(value: string) {
+  return value.replace(/[ \t\n\\]/g, (ch) => {
+    return `\\${ch.charCodeAt(0).toString(8).padStart(3, "0")}`;
+  });
 }
 
 function resolveFuseConfig(

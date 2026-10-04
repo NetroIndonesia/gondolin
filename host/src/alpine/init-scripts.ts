@@ -275,14 +275,20 @@ if [ -x /usr/bin/sandboxfs ]; then
   fi
   sandboxfs_rpc_path="$(resolve_virtio_port_path virtio-fs)"
   log "[init] sandboxfs rpc path \${sandboxfs_rpc_path}"
-  /usr/bin/sandboxfs --mount "\${sandboxfs_mount}" --rpc-path "\${sandboxfs_rpc_path}" > "\${SANDBOXFS_LOG}" 2>&1 &
+  sandboxfs_binds_file="/run/sandboxfs.binds"
+  rm -f "\${sandboxfs_binds_file}"
+  /usr/bin/sandboxfs --mount "\${sandboxfs_mount}" --rpc-path "\${sandboxfs_rpc_path}" --binds-file "\${sandboxfs_binds_file}" > "\${SANDBOXFS_LOG}" 2>&1 &
 
   if wait_for_sandboxfs; then
     sandboxfs_ready=1
-    if [ -n "\${sandboxfs_binds}" ]; then
-      OLD_IFS="\${IFS}"
-      IFS=","
-      for bind in \${sandboxfs_binds}; do
+    # sandboxfs writes the bind list (fetched from the host) before mounting.
+    # Older hosts only provide it via the kernel cmdline, which is limited in
+    # size, so only fall back to that if the file is missing.
+    if [ ! -f "\${sandboxfs_binds_file}" ] && [ -n "\${sandboxfs_binds}" ]; then
+      printf "%s\\n" "\${sandboxfs_binds}" | tr ',' '\\n' > "\${sandboxfs_binds_file}"
+    fi
+    if [ -f "\${sandboxfs_binds_file}" ]; then
+      while IFS= read -r bind; do
         if [ -z "\${bind}" ]; then
           continue
         fi
@@ -294,8 +300,7 @@ if [ -x /usr/bin/sandboxfs ]; then
         fi
         log "[init] binding sandboxfs \${bind_source} -> \${bind}"
         log_cmd mount --bind "\${bind_source}" "\${bind}"
-      done
-      IFS="\${OLD_IFS}"
+      done < "\${sandboxfs_binds_file}"
     fi
   else
     log "[init] sandboxfs mount not ready"
