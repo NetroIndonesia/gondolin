@@ -28,6 +28,7 @@ All notable changes to Gondolin are documented here.
 - Fix HTTPS egress when the host runs on Bun: select MITM certificates by pre-parsing the guest ClientHello SNI (Bun does not call `SNICallback`), and end MITM TLS sessions only after the full response reached the guest flow. #147 #73
 - Fix `gondolin build` producing rootfs images that are too small when the build directory is on a compressing filesystem (zfs, btrfs): the size estimate now uses apparent file sizes instead of `du`.  #142
 - Fix `ShadowProvider` (`writeMode: "tmpfs"`) failing with `ENOENT` when creating a shadowed directory whose parent only exists in the backend.  #126
+- Create the standard `/dev/fd`, `/dev/stdin`, `/dev/stdout` and `/dev/stderr` symlinks in the guest so bash process substitution works (requires rebuilding images).  #118
 
 ## 0.12.0
 

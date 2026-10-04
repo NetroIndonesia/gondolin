@@ -147,6 +147,14 @@ mkdir -p /dev/pts /dev/shm /run
 mount -t devpts devpts /dev/pts || log "[init] mount devpts failed"
 mount -t tmpfs tmpfs /run || log "[init] mount tmpfs failed"
 
+# Standard /dev symlinks (needed for bash process substitution, /dev/stdin, ...)
+for dev_link in fd:/proc/self/fd stdin:/proc/self/fd/0 stdout:/proc/self/fd/1 stderr:/proc/self/fd/2; do
+  dev_name="/dev/\${dev_link%%:*}"
+  if [ ! -e "\${dev_name}" ] && [ ! -L "\${dev_name}" ]; then
+    ln -s "\${dev_link#*:}" "\${dev_name}" 2>/dev/null || log "[init] symlink \${dev_name} failed"
+  fi
+done
+
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
 mkdir -p /tmp /var/tmp /var/cache /var/log /root /home
