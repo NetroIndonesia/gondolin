@@ -22,6 +22,7 @@
  *     gondolin repo (or installing `@earendil-works/gondolin` next to it) is easiest
  */
 
+import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 
 import type {
@@ -63,23 +64,10 @@ function toGuestPath(localCwd: string, localPath: string): string {
 function createGondolinReadOps(vm: VM, localCwd: string): ReadOperations {
   return {
     readFile: async (p) => {
-      const guestPath = toGuestPath(localCwd, p);
-      const r = await vm.exec(["/bin/cat", guestPath]);
-      if (!r.ok) {
-        throw new Error(`cat failed (${r.exitCode}): ${r.stderr}`);
-      }
-      return r.stdoutBuffer;
+      return vm.fs.readFile(toGuestPath(localCwd, p));
     },
     access: async (p) => {
-      const guestPath = toGuestPath(localCwd, p);
-      const r = await vm.exec([
-        "/bin/sh",
-        "-lc",
-        `test -r ${shQuote(guestPath)}`,
-      ]);
-      if (!r.ok) {
-        throw new Error(`not readable: ${p}`);
-      }
+      await vm.fs.access(toGuestPath(localCwd, p), { mode: fsConstants.R_OK });
     },
     detectImageMimeType: async (p) => {
       const guestPath = toGuestPath(localCwd, p);
@@ -106,29 +94,15 @@ function createGondolinReadOps(vm: VM, localCwd: string): ReadOperations {
 
 function createGondolinWriteOps(vm: VM, localCwd: string): WriteOperations {
   return {
+    // Use the VM filesystem API rather than a shell round-trip: it streams the
+    // content, so there is no argv size limit and no quoting to get wrong.
     writeFile: async (p, content) => {
       const guestPath = toGuestPath(localCwd, p);
-      const dir = path.posix.dirname(guestPath);
-
-      // Base64 roundtrip to avoid quoting issues
-      const b64 = Buffer.from(content, "utf8").toString("base64");
-      const script = [
-        `set -eu`,
-        `mkdir -p ${shQuote(dir)}`,
-        `echo ${shQuote(b64)} | base64 -d > ${shQuote(guestPath)}`,
-      ].join("\n");
-
-      const r = await vm.exec(["/bin/sh", "-lc", script]);
-      if (!r.ok) {
-        throw new Error(`write failed (${r.exitCode}): ${r.stderr}`);
-      }
+      await vm.fs.mkdir(path.posix.dirname(guestPath), { recursive: true });
+      await vm.fs.writeFile(guestPath, content);
     },
     mkdir: async (dir) => {
-      const guestDir = toGuestPath(localCwd, dir);
-      const r = await vm.exec(["/bin/mkdir", "-p", guestDir]);
-      if (!r.ok) {
-        throw new Error(`mkdir failed (${r.exitCode}): ${r.stderr}`);
-      }
+      await vm.fs.mkdir(toGuestPath(localCwd, dir), { recursive: true });
     },
   };
 }
@@ -139,20 +113,12 @@ function createGondolinEditOps(vm: VM, localCwd: string): EditOperations {
   return { readFile: r.readFile, access: r.access, writeFile: w.writeFile };
 }
 
-function sanitizeEnv(
-  env?: NodeJS.ProcessEnv,
-): Record<string, string> | undefined {
-  if (!env) return undefined;
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(env)) {
-    if (typeof v === "string") out[k] = v;
-  }
-  return out;
-}
-
 function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {
   return {
-    exec: async (command, cwd, { onData, signal, timeout, env }) => {
+    // The host environment passed by pi is intentionally not forwarded: it
+    // usually contains API keys and other credentials.  Configure secrets for
+    // the guest with `httpHooks` (see docs/secrets.md) instead.
+    exec: async (command, cwd, { onData, signal, timeout }) => {
       const guestCwd = toGuestPath(localCwd, cwd);
 
       const ac = new AbortController();
@@ -173,7 +139,6 @@ function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {
         const proc = vm.exec(["/bin/bash", "-lc", command], {
           cwd: guestCwd,
           signal: ac.signal,
-          env: sanitizeEnv(env),
           stdout: "pipe",
           stderr: "pipe",
         });
