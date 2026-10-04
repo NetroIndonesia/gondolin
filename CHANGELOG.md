@@ -30,6 +30,7 @@ All notable changes to Gondolin are documented here.
 - Fix `ShadowProvider` (`writeMode: "tmpfs"`) failing with `ENOENT` when creating a shadowed directory whose parent only exists in the backend.  #126
 - Create the standard `/dev/fd`, `/dev/stdin`, `/dev/stdout` and `/dev/stderr` symlinks in the guest so bash process substitution works (requires rebuilding images).  #118
 - Bind-mount `/dev` into the `postBuild.commands` chroot so commands can use `/dev/null` and friends.  #153
+- Fix concurrent `vm.fs` operations (e.g. parallel `writeFile()` calls) interleaving on the guest protocol and hanging forever: file operations are now strictly serialized.  #137
 
 ## 0.12.0
 

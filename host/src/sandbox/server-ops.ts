@@ -46,6 +46,7 @@ import {
 } from "./server-boot-config.ts";
 import { stripTrailingNewline } from "../debug.ts";
 import { errorMessage } from "../utils/error.ts";
+import type { FileOperation } from "./server.ts";
 
 type BridgeWritableWaiter = {
   resolve: () => void;
@@ -129,9 +130,6 @@ export class SandboxServerOps {
   ): Promise<Readable> {
     this.assertGuestPath(filePath, "filePath");
     await this.start();
-    await this.waitForExecIdle(options.signal);
-
-    const id = this.allocateFileOpId();
     const highWaterMark =
       typeof options.highWaterMark === "number" &&
       Number.isFinite(options.highWaterMark) &&
@@ -153,13 +151,10 @@ export class SandboxServerOps {
       // keep process alive if caller does not attach an error handler
     });
 
-    this.fileOps.set(id, {
-      kind: "read",
-      stream,
-      resolve: resolveDone,
-      reject: rejectDone,
-    });
-    this.activeFileOpId = id;
+    const id = await this.acquireFileOp(
+      { kind: "read", stream, resolve: resolveDone, reject: rejectDone },
+      options.signal,
+    );
 
     let abortCleanup: (() => void) | null = null;
     if (options.signal) {
@@ -246,10 +241,6 @@ export class SandboxServerOps {
   ): Promise<void> {
     this.assertGuestPath(filePath, "filePath");
     await this.start();
-    await this.waitForExecIdle(options.signal);
-
-    const id = this.allocateFileOpId();
-
     const {
       promise: done,
       resolve: resolveDone,
@@ -257,12 +248,10 @@ export class SandboxServerOps {
     } = Promise.withResolvers<void>();
     void done.catch(() => {});
 
-    this.fileOps.set(id, {
-      kind: "write",
-      resolve: resolveDone,
-      reject: rejectDone,
-    });
-    this.activeFileOpId = id;
+    const id = await this.acquireFileOp(
+      { kind: "write", resolve: resolveDone, reject: rejectDone },
+      options.signal,
+    );
 
     const CHUNK = 64 * 1024;
     let requestStarted = false;
@@ -322,10 +311,6 @@ export class SandboxServerOps {
   ): Promise<void> {
     this.assertGuestPath(filePath, "filePath");
     await this.start();
-    await this.waitForExecIdle(options.signal);
-
-    const id = this.allocateFileOpId();
-
     const {
       promise: done,
       resolve: resolveDone,
@@ -333,12 +318,10 @@ export class SandboxServerOps {
     } = Promise.withResolvers<void>();
     void done.catch(() => {});
 
-    this.fileOps.set(id, {
-      kind: "delete",
-      resolve: resolveDone,
-      reject: rejectDone,
-    });
-    this.activeFileOpId = id;
+    const id = await this.acquireFileOp(
+      { kind: "delete", resolve: resolveDone, reject: rejectDone },
+      options.signal,
+    );
 
     try {
       await this.sendControlMessage(
@@ -694,13 +677,40 @@ export class SandboxServerOps {
     throw new Error("no available request ids for file operations");
   }
 
+  /**
+   * Wait until no exec or file operation is active, then claim the single
+   * guest file operation slot and register `op` under a fresh id.
+   *
+   * The guest handles file requests one at a time and expects their data
+   * frames to be contiguous, so concurrent callers must be serialized.  The
+   * idle re-check and the claim run in the same tick, so two callers can never
+   * both observe an idle slot.
+   */
+  async acquireFileOp(
+    op: FileOperation,
+    signal?: AbortSignal,
+  ): Promise<number> {
+    while (true) {
+      await this.waitForExecIdle(signal);
+      if (!this.isExecIdle()) continue;
+      const id = this.allocateFileOpId();
+      this.fileOps.set(id, op);
+      this.activeFileOpId = id;
+      return id;
+    }
+  }
+
+  isExecIdle(): boolean {
+    return (
+      this.inflight.size === 0 &&
+      this.startedExecs.size === 0 &&
+      this.activeFileOpId === null &&
+      this.execQueue.length === 0
+    );
+  }
+
   async waitForExecIdle(signal?: AbortSignal): Promise<void> {
-    while (
-      this.inflight.size > 0 ||
-      this.startedExecs.size > 0 ||
-      this.activeFileOpId !== null ||
-      this.execQueue.length > 0
-    ) {
+    while (!this.isExecIdle()) {
       if (signal?.aborted) {
         throw new Error("operation aborted");
       }

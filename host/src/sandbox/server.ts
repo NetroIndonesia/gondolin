@@ -72,7 +72,7 @@ type FileDoneOperation = {
   reject: (err: Error) => void;
 };
 
-type FileOperation = FileReadOperation | FileDoneOperation;
+export type FileOperation = FileReadOperation | FileDoneOperation;
 
 type BridgeWritableWaiter = {
   /** resolve callback when the bridge accepts more data */
