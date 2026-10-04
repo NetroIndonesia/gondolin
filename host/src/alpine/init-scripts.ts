@@ -157,22 +157,57 @@ done
 
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
-mkdir -p /tmp /var/tmp /var/cache /var/log /root /home
-mount -t tmpfs tmpfs /tmp || log "[init] mount tmpfs /tmp failed"
-mount -t tmpfs tmpfs /root || log "[init] mount tmpfs /root failed"
-chmod 700 /root || true
-mount -t tmpfs tmpfs /var/tmp || log "[init] mount tmpfs /var/tmp failed"
-mount -t tmpfs tmpfs /var/cache || log "[init] mount tmpfs /var/cache failed"
-mount -t tmpfs tmpfs /var/log || log "[init] mount tmpfs /var/log failed"
+sandboxfs_mount="/data"
+sandboxfs_binds=""
+# scratch tmpfs mounts: "/path[:opt=value...][,/path...]" or "none"
+gondolin_tmpfs="/root:mode=0700,/tmp,/var/cache,/var/log,/var/tmp"
 
-mkdir -p /tmp/.cache /tmp/.config /tmp/.local/share
+if [ -r /proc/cmdline ]; then
+  for arg in $(cat /proc/cmdline); do
+    case "\${arg}" in
+      sandboxfs.mount=*)
+        sandboxfs_mount="\${arg#sandboxfs.mount=}"
+        ;;
+      sandboxfs.bind=*)
+        sandboxfs_binds="\${arg#sandboxfs.bind=}"
+        ;;
+      gondolin.tmpfs=*)
+        gondolin_tmpfs="\${arg#gondolin.tmpfs=}"
+        ;;
+    esac
+  done
+fi
+
+mount_tmpfs_entry() {
+  tmpfs_path="\${1%%:*}"
+  tmpfs_opts=""
+  if [ "\${tmpfs_path}" != "$1" ]; then
+    tmpfs_opts="$(printf "%s" "\${1#*:}" | tr ':' ',')"
+  fi
+  case "\${tmpfs_path}" in
+    /?*) ;;
+    *)
+      log "[init] ignoring invalid tmpfs entry $1"
+      return 0
+      ;;
+  esac
+  mkdir -p "\${tmpfs_path}" 2>/dev/null || true
+  if [ -n "\${tmpfs_opts}" ]; then
+    mount -t tmpfs -o "\${tmpfs_opts}" tmpfs "\${tmpfs_path}" || log "[init] mount tmpfs \${tmpfs_path} failed"
+  else
+    mount -t tmpfs tmpfs "\${tmpfs_path}" || log "[init] mount tmpfs \${tmpfs_path} failed"
+  fi
+}
+
+mkdir -p /tmp /home 2>/dev/null || true
+if [ "\${gondolin_tmpfs}" != "none" ]; then
+  for tmpfs_entry in $(printf "%s" "\${gondolin_tmpfs}" | tr ',' ' '); do
+    mount_tmpfs_entry "\${tmpfs_entry}"
+  done
+fi
 
 export HOME=/root
 export TMPDIR=/tmp
-export XDG_CACHE_HOME=/tmp/.cache
-export XDG_CONFIG_HOME=/tmp/.config
-export XDG_DATA_HOME=/tmp/.local/share
-export UV_CACHE_DIR=/tmp/.cache/uv
 export UV_SYSTEM_CERTS=true
 
 log "[init] /dev entries:"
@@ -232,22 +267,6 @@ fi
 
 if modprobe fuse > /dev/null 2>&1; then
   log "[init] loaded fuse"
-fi
-
-sandboxfs_mount="/data"
-sandboxfs_binds=""
-
-if [ -r /proc/cmdline ]; then
-  for arg in $(cat /proc/cmdline); do
-    case "\${arg}" in
-      sandboxfs.mount=*)
-        sandboxfs_mount="\${arg#sandboxfs.mount=}"
-        ;;
-      sandboxfs.bind=*)
-        sandboxfs_binds="\${arg#sandboxfs.bind=}"
-        ;;
-    esac
-  done
 fi
 
 wait_for_sandboxfs() {

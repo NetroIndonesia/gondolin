@@ -15,9 +15,9 @@ See also: [Snapshots](./snapshots.md).
 
 Tracking issue: [#8](https://github.com/earendil-works/gondolin/issues/8).
 
-**Note:** Some guest paths are tmpfs-backed by design (eg. `/root`, `/tmp`,
+**Note:** Some guest paths are tmpfs-backed by default (eg. `/root`, `/tmp`,
 `/var/tmp`, `/var/cache`, `/var/log`). Writes under those paths are not part of
-disk checkpoints.
+disk checkpoints unless the VM `tmpfs` option moves them to the root disk.
 
 ## Adding Extra Packages Requires Building a New Image
 

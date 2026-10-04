@@ -335,6 +335,9 @@ export class VM {
     if (options.cpus && sandboxOptions.cpus === undefined) {
       sandboxOptions.cpus = options.cpus;
     }
+    if (options.tmpfs !== undefined && sandboxOptions.tmpfs === undefined) {
+      sandboxOptions.tmpfs = options.tmpfs;
+    }
 
     // Resolve options with asset fetching
     const resolvedSandboxOptions =
@@ -483,6 +486,9 @@ export class VM {
     }
     if (options.cpus && sandboxOptions.cpus === undefined) {
       sandboxOptions.cpus = options.cpus;
+    }
+    if (options.tmpfs !== undefined && sandboxOptions.tmpfs === undefined) {
+      sandboxOptions.tmpfs = options.tmpfs;
     }
 
     // Resolve sandbox options (sync) if needed so we can prepare the root disk.

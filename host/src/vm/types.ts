@@ -4,6 +4,7 @@ import type { SshOptions } from "../qemu/ssh.ts";
 import type { TcpOptions } from "../qemu/tcp.ts";
 import type { RootfsMode } from "../build/config.ts";
 import type { SandboxServerOptions } from "../sandbox/server-options.ts";
+import type { GuestTmpfsMounts } from "../sandbox/tmpfs.ts";
 import type { VirtualProvider } from "../vfs/node/index.ts";
 import type { VfsHooks } from "../vfs/provider.ts";
 
@@ -57,6 +58,8 @@ export type VMOptions = {
   memory?: string;
   /** vm cpu count (default: 2) */
   cpus?: number;
+  /** guest tmpfs mounts replacing the built-in set (`{}` keeps scratch paths on the root disk) */
+  tmpfs?: GuestTmpfsMounts;
   /** startup timeout while waiting for guest readiness in `ms` (`<= 0` disables timeout) */
   startTimeoutMs?: number;
   /** session label for `gondolin list` */

@@ -137,6 +137,37 @@ The guest image must include `resize2fs` (Alpine package: `e2fsprogs-extra`). Ne
 `alpine-base` images include it; custom images should add it to
 `alpine.rootfsPackages` when using `rootfs.size`.
 
+## Scratch tmpfs Mounts
+
+By default the guest `/init` mounts tmpfs over `/root` (mode `0700`), `/tmp`,
+`/var/tmp`, `/var/cache` and `/var/log`.  Those paths live in guest RAM (each
+capped by the kernel at half the VM memory) and are not part of disk
+checkpoints.
+
+Use the `tmpfs` option to replace that set.  Each key is a guest path; `size`
+(bytes, `k`/`m`/`g` suffix or a percentage of guest memory) and `mode` (octal
+string) are optional:
+
+```ts
+const vm = await VM.create({
+  // only /tmp is RAM-backed and capped; everything else stays on the root disk
+  tmpfs: { "/tmp": { size: "256m" } },
+  rootfs: { size: "8G" },
+});
+```
+
+Pass `tmpfs: {}` to disable all scratch tmpfs mounts.  The paths are then
+backed by the root disk, which is useful for cache-heavy workloads with little
+VM memory, and their contents become part of disk checkpoints.  Combine it with
+`rootfs.size` since the default root disk has little free space.  With
+`rootfs.mode="readonly"` the root disk is not writable, so keep tmpfs mounts for
+every path the workload writes to.
+`DEFAULT_GUEST_TMPFS` exports the built-in set for extending it.
+
+The setting is passed to `/init` on the kernel command line and requires a
+guest image built with this Gondolin version or newer; older images ignore it
+and always mount the built-in set.
+
 ## Disk Checkpoints (qcow2)
 
 Gondolin supports **disk-only checkpoints** of the VM root filesystem.
@@ -187,7 +218,7 @@ Notes:
   writable qcow2 layer explicitly
 - Cross-backend resume (`qemu` ↔ `krun`) requires guest assets with krun boot
   artifacts (`manifest.assets.krunKernel`)
-- Some guest paths are tmpfs-backed by design (eg. `/root`, `/tmp`, `/var/log`); writes under those paths are not part of disk checkpoints
+- Some guest paths are tmpfs-backed by default (eg. `/root`, `/tmp`, `/var/log`); writes under those paths are not part of disk checkpoints (see [Scratch tmpfs Mounts](#scratch-tmpfs-mounts))
 
 ## Debug Logging
 

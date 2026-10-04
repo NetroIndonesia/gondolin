@@ -151,9 +151,10 @@ This snapshot support is intentionally narrow and has a number of limitations:
     - Only the VM root disk is captured
     - VFS mounts and tmpfs-backed paths are not part of the snapshot
 
-- Some paths are tmpfs-backed by design
+- Some paths are tmpfs-backed by default
     - For example: `/root`, `/tmp`, `/var/log`
     - Writes under those paths are not included in disk snapshots
+    - Use the VM `tmpfs` option to keep them on the root disk instead
 
 - The VM is stopped to create a snapshot
     - `vm.checkpoint(...)` closes the VM and the original VM object must not be

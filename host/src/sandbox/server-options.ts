@@ -37,6 +37,7 @@ import {
   getDefaultKrunInitrdPath,
 } from "../utils/empty-initrd.ts";
 import { isPathWithin } from "../utils/path.ts";
+import { normalizeGuestTmpfs, type GuestTmpfsMounts } from "./tmpfs.ts";
 
 const require = createRequire(import.meta.url);
 
@@ -142,6 +143,8 @@ export type SandboxServerOptions = {
   qemuIdlePauseMs?: number;
   /** kernel cmdline append string */
   append?: string;
+  /** guest tmpfs mounts created by `/init` (built-in set when undefined) */
+  tmpfs?: GuestTmpfsMounts;
 
   /** max stdin buffered per process in `bytes` */
   maxStdinBytes?: number;
@@ -234,6 +237,8 @@ export type ResolvedSandboxServerOptions = {
   qemuIdlePauseMs?: number;
   /** kernel cmdline append string */
   append?: string;
+  /** guest tmpfs mounts created by `/init` (built-in set when undefined) */
+  tmpfs?: GuestTmpfsMounts;
 
   /** max stdin buffered per process in `bytes` */
   maxStdinBytes: number;
@@ -998,6 +1003,10 @@ export function resolveSandboxServerOptions(
     autoRestart: options.autoRestart ?? false,
     qemuIdlePauseMs: resolveQemuIdlePauseMs(options, vmm),
     append: options.append,
+    tmpfs:
+      options.tmpfs === undefined
+        ? undefined
+        : normalizeGuestTmpfs(options.tmpfs),
     maxStdinBytes,
     maxQueuedStdinBytes,
     maxTotalQueuedStdinBytes,

@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { ROOTFS_INIT_SCRIPT } from "../src/alpine/init-scripts.ts";
+import { DEFAULT_GUEST_TMPFS, buildTmpfsAppend } from "../src/sandbox/tmpfs.ts";
 
 test("rootfs init uses current uv system certificates environment variable", () => {
   assert.match(ROOTFS_INIT_SCRIPT, /export UV_SYSTEM_CERTS=true/);
@@ -105,4 +106,64 @@ test("rootfs init passes the binds file to sandboxfs", () => {
     ROOTFS_INIT_SCRIPT,
     /\/usr\/bin\/sandboxfs .*--binds-file "\$\{sandboxfs_binds_file\}"/,
   );
+});
+
+function runTmpfsSnippet(cmdlineTmpfs?: string): string[] {
+  const defaultMatch = ROOTFS_INIT_SCRIPT.match(/^gondolin_tmpfs="([^"]*)"$/m);
+  assert.ok(defaultMatch);
+  const start = ROOTFS_INIT_SCRIPT.indexOf("mount_tmpfs_entry() {");
+  const end = ROOTFS_INIT_SCRIPT.indexOf("\nexport HOME=/root", start);
+  assert.ok(start >= 0 && end > start);
+
+  const output = execFileSync(
+    "sh",
+    [
+      "-euc",
+      [
+        "log() { :; }",
+        "mkdir() { :; }",
+        'mount() { printf "%s\\n" "$*"; }',
+        `gondolin_tmpfs="${defaultMatch[1]}"`,
+        'if [ "$#" -gt 0 ]; then gondolin_tmpfs="$1"; fi',
+        ROOTFS_INIT_SCRIPT.slice(start, end),
+      ].join("\n"),
+      "sh",
+      ...(cmdlineTmpfs === undefined ? [] : [cmdlineTmpfs]),
+    ],
+    { encoding: "utf8" },
+  );
+  return output.split("\n").filter((line) => line.length > 0);
+}
+
+test("rootfs init mounts the built-in tmpfs set by default", () => {
+  assert.deepEqual(runTmpfsSnippet(), [
+    "-t tmpfs -o mode=0700 tmpfs /root",
+    "-t tmpfs tmpfs /tmp",
+    "-t tmpfs tmpfs /var/cache",
+    "-t tmpfs tmpfs /var/log",
+    "-t tmpfs tmpfs /var/tmp",
+  ]);
+});
+
+test("rootfs init built-in tmpfs set matches DEFAULT_GUEST_TMPFS", () => {
+  assert.match(
+    ROOTFS_INIT_SCRIPT,
+    new RegExp(
+      `^gondolin_tmpfs="${buildTmpfsAppend({ ...DEFAULT_GUEST_TMPFS }).slice("gondolin.tmpfs=".length)}"$`,
+      "m",
+    ),
+  );
+});
+
+test("rootfs init mounts tmpfs entries from the cmdline", () => {
+  assert.deepEqual(runTmpfsSnippet("/tmp:size=256m:mode=1777,/scratch"), [
+    "-t tmpfs -o size=256m,mode=1777 tmpfs /tmp",
+    "-t tmpfs tmpfs /scratch",
+  ]);
+  assert.deepEqual(runTmpfsSnippet("none"), []);
+});
+
+test("rootfs init does not hardcode application env vars", () => {
+  assert.doesNotMatch(ROOTFS_INIT_SCRIPT, /XDG_(CACHE|CONFIG|DATA)_HOME/);
+  assert.doesNotMatch(ROOTFS_INIT_SCRIPT, /UV_CACHE_DIR/);
 });

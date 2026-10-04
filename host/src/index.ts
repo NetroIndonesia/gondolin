@@ -33,6 +33,11 @@ export type { ExecOptions, ExecResult, ExecProcess } from "./exec.ts";
 
 // Server for running the sandbox
 export { SandboxServer } from "./sandbox/server.ts";
+export {
+  DEFAULT_GUEST_TMPFS,
+  type GuestTmpfsMountOptions,
+  type GuestTmpfsMounts,
+} from "./sandbox/tmpfs.ts";
 
 // VFS (Virtual File System) providers
 export {
