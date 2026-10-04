@@ -252,6 +252,8 @@ export type SandboxConfig = {
   qmpSocketPath?: string;
   /** qemu idle pause timeout in `ms` */
   qemuIdlePauseMs?: number;
+  /** host-to-guest clock sync after QMP cont */
+  onResume?: () => Promise<void>;
   /** whether to restart the vm automatically on exit */
   autoRestart: boolean;
 };
@@ -268,6 +270,8 @@ export class SandboxController extends EventEmitter {
   private manualStop = false;
   private paused = false;
   private pauseInProgress = false;
+  private syncPending = false;
+  private resumePromise: Promise<void> | null = null;
   private qmpIdleDisabled = false;
   private qmpChain: Promise<void> = Promise.resolve();
   private qmpGeneration = 0;
@@ -314,6 +318,8 @@ export class SandboxController extends EventEmitter {
     this.qmpGeneration += 1;
     this.paused = false;
     this.pauseInProgress = false;
+    this.syncPending = false;
+    this.resumePromise = null;
     this.qmpIdleDisabled = false;
     this.qmpChain = Promise.resolve();
     this.manualStop = false;
@@ -393,26 +399,43 @@ export class SandboxController extends EventEmitter {
   resumeForActivity(): Promise<void> | void {
     if (!this.qmpSocketPath) return;
     this.cancelIdlePause();
-    if (!this.paused && !this.pauseInProgress) return;
-    return this.resumeForActivityAsync(this.qmpGeneration, this.child);
+    if (this.resumePromise) return this.resumePromise;
+    if (!this.paused && !this.pauseInProgress && !this.syncPending) return;
+    const promise = this.resumeForActivityAsync(this.qmpGeneration, this.child);
+    this.resumePromise = promise;
+    const clear = () => {
+      if (this.resumePromise === promise) this.resumePromise = null;
+    };
+    void promise.then(clear, clear);
+    return promise;
   }
 
   private async resumeForActivityAsync(
     generation: number,
     child: ChildProcess | null,
   ): Promise<void> {
-    try {
-      await this.runQmpCommand("cont");
-    } catch (err) {
-      if (!this.isCurrentQmpGeneration(generation, child)) return;
-      const running = await this.queryQmpRunning(generation, child);
-      if (!this.isCurrentQmpGeneration(generation, child)) return;
-      if (running !== true) throw err;
-    }
+    if (this.paused || this.pauseInProgress) {
+      try {
+        await this.runQmpCommand("cont");
+      } catch (err) {
+        if (!this.isCurrentQmpGeneration(generation, child)) return;
+        const running = await this.queryQmpRunning(generation, child);
+        if (!this.isCurrentQmpGeneration(generation, child)) return;
+        if (running !== true) throw err;
+      }
 
-    if (!this.isCurrentQmpGeneration(generation, child)) return;
-    this.paused = false;
-    this.pauseInProgress = false;
+      if (!this.isCurrentQmpGeneration(generation, child)) return;
+      this.paused = false;
+      this.pauseInProgress = false;
+      this.syncPending = true;
+    }
+    if (this.syncPending && this.config.onResume) {
+      await this.config.onResume();
+      if (this.isCurrentQmpGeneration(generation, child))
+        this.syncPending = false;
+    } else {
+      this.syncPending = false;
+    }
   }
 
   scheduleIdlePause() {
@@ -422,7 +445,8 @@ export class SandboxController extends EventEmitter {
       !this.child ||
       this.state !== "running" ||
       this.paused ||
-      this.pauseInProgress
+      this.pauseInProgress ||
+      this.syncPending
     ) {
       return;
     }

@@ -16,7 +16,7 @@
 //! Guest file I/O: file_read_request, file_read_data, file_read_done, file_write_request, file_write_data, file_write_done, file_delete_request, file_delete_done
 //! Filesystem: fs_request, fs_response
 //! TCP: tcp_open, tcp_opened, tcp_data, tcp_eof, tcp_close
-//! Status: vfs_ready, vfs_error
+//! Status: vfs_ready, vfs_error, time_sync, time_sync_done
 //! Errors: error
 
 const std = @import("std");
@@ -31,6 +31,13 @@ pub const ProtocolError = error{
     MissingField,
     UnexpectedType,
     InvalidValue,
+};
+
+pub const TimeSync = struct {
+    /// correlation id
+    id: u32,
+    /// host wall-clock time since Unix epoch in `ms`
+    unix_ms: u64,
 };
 
 pub const ExecRequest = struct {
@@ -290,6 +297,67 @@ pub const FrameWriter = struct {
         }
     }
 };
+
+pub fn decodeTimeSync(allocator: std.mem.Allocator, frame: []const u8) !TimeSync {
+    var dec = cbor.Decoder.init(allocator, frame);
+    const root = try dec.decodeValue();
+    defer cbor.freeValue(allocator, root);
+
+    const map = try expectMap(root);
+    const msg_type = try expectText(cbor.getMapValue(map, "t") orelse return ProtocolError.MissingField);
+    if (!std.mem.eql(u8, msg_type, "time_sync")) return ProtocolError.UnexpectedType;
+    const id = try expectU32(cbor.getMapValue(map, "id") orelse return ProtocolError.MissingField);
+    const payload = try expectMap(cbor.getMapValue(map, "p") orelse return ProtocolError.MissingField);
+    const unix_ms = try expectU64(cbor.getMapValue(payload, "unix_ms") orelse return ProtocolError.MissingField);
+    return .{ .id = id, .unix_ms = unix_ms };
+}
+
+pub fn encodeTimeSyncDone(allocator: std.mem.Allocator, id: u32) ![]u8 {
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(allocator);
+    const w = cbor.arrayListWriter(allocator, &buf);
+    try cbor.writeMapStart(w, 4);
+    try cbor.writeText(w, "v");
+    try cbor.writeUInt(w, 1);
+    try cbor.writeText(w, "t");
+    try cbor.writeText(w, "time_sync_done");
+    try cbor.writeText(w, "id");
+    try cbor.writeUInt(w, id);
+    try cbor.writeText(w, "p");
+    try cbor.writeMapStart(w, 0);
+    return try buf.toOwnedSlice(allocator);
+}
+
+test "time sync decodes Unix milliseconds and acknowledges the request" {
+    const allocator = std.testing.allocator;
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(allocator);
+    const w = cbor.arrayListWriter(allocator, &buf);
+    try cbor.writeMapStart(w, 4);
+    try cbor.writeText(w, "v");
+    try cbor.writeUInt(w, 1);
+    try cbor.writeText(w, "t");
+    try cbor.writeText(w, "time_sync");
+    try cbor.writeText(w, "id");
+    try cbor.writeUInt(w, 42);
+    try cbor.writeText(w, "p");
+    try cbor.writeMapStart(w, 1);
+    try cbor.writeText(w, "unix_ms");
+    try cbor.writeUInt(w, 1_790_000_000_123);
+
+    const sync = try decodeTimeSync(allocator, buf.items);
+    try std.testing.expectEqual(@as(u32, 42), sync.id);
+    try std.testing.expectEqual(@as(u64, 1_790_000_000_123), sync.unix_ms);
+
+    const done = try encodeTimeSyncDone(allocator, sync.id);
+    defer allocator.free(done);
+    var dec = cbor.Decoder.init(allocator, done);
+    const root = try dec.decodeValue();
+    defer cbor.freeValue(allocator, root);
+    const map = try expectMap(root);
+    try std.testing.expectEqualStrings("time_sync_done", try expectText(cbor.getMapValue(map, "t").?));
+    try std.testing.expectEqual(@as(u32, 42), try expectU32(cbor.getMapValue(map, "id").?));
+}
 
 pub fn decodeExecRequest(allocator: std.mem.Allocator, frame: []const u8) !ExecRequest {
     var dec = cbor.Decoder.init(allocator, frame);
@@ -1151,6 +1219,16 @@ fn expectBytes(value: cbor.Value) ![]const u8 {
 fn expectBool(value: cbor.Value) !bool {
     return switch (value) {
         .Bool => |b| b,
+        else => ProtocolError.InvalidType,
+    };
+}
+
+fn expectU64(value: cbor.Value) !u64 {
+    return switch (value) {
+        .Int => |num| {
+            if (num < 0) return ProtocolError.InvalidValue;
+            return @intCast(num);
+        },
         else => ProtocolError.InvalidType,
     };
 }

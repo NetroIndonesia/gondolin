@@ -12,6 +12,8 @@ extern "c" fn forkpty(
     winp: ?*const std.posix.winsize,
 ) c_int;
 
+extern "c" fn clock_settime(clock_id: std.c.CLOCK, ts: *const std.c.timespec) c_int;
+
 const log = std.log.scoped(.sandboxd);
 
 test {
@@ -270,6 +272,34 @@ pub fn main() !void {
 
         waiting_for_reconnect = false;
         log.info("received frame ({} bytes)", .{frame.len});
+
+        const time_sync = protocol.decodeTimeSync(allocator, frame) catch |err| switch (err) {
+            protocol.ProtocolError.UnexpectedType => null,
+            else => {
+                log.err("invalid time_sync: {s}", .{@errorName(err)});
+                _ = tx.sendError(allocator, 0, "invalid_request", "invalid time_sync") catch {};
+                continue;
+            },
+        };
+        if (time_sync) |sync| {
+            if (sync.unix_ms > @as(u64, std.math.maxInt(i64))) {
+                _ = tx.sendError(allocator, sync.id, "invalid_request", "invalid unix_ms") catch {};
+                continue;
+            }
+            const ts = std.c.timespec{
+                .sec = @intCast(sync.unix_ms / 1000),
+                .nsec = @intCast((sync.unix_ms % 1000) * 1_000_000),
+            };
+            if (clock_settime(.REALTIME, &ts) != 0) {
+                log.err("clock_settime failed", .{});
+                _ = tx.sendError(allocator, sync.id, "time_sync_failed", "clock_settime failed") catch {};
+                continue;
+            }
+            const response = try protocol.encodeTimeSyncDone(allocator, sync.id);
+            defer allocator.free(response);
+            try tx.sendPayload(response);
+            continue;
+        }
 
         const exec_req = protocol.decodeExecRequest(allocator, frame) catch |err| switch (err) {
             protocol.ProtocolError.UnexpectedType => null,

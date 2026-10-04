@@ -150,9 +150,10 @@ test("buildQemuArgs: rootDiskVolatileMode=snapshot enables qemu snapshot mode", 
   assert.match(args[driveIndex + 1]!, /snapshot=on/);
 });
 
-test("SandboxController: idle pause uses a short QMP socket", async () => {
+test("SandboxController: idle resume syncs clock before admitting work", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "gondolin-qmp-test-"));
   const seenCommands: string[] = [];
+  let syncAttempts = 0;
   const child = new FakeChildProcess();
   let spawnedArgs: string[] = [];
 
@@ -165,6 +166,10 @@ test("SandboxController: idle pause uses a short QMP socket", async () => {
     makeConfig({
       qemuIdlePauseMs: 1,
       virtioSocketPath: path.join(tmpDir, "virtio.sock"),
+      onResume: async () => {
+        syncAttempts++;
+        if (syncAttempts === 1) throw new Error("sync failed");
+      },
     }),
   );
 
@@ -214,8 +219,16 @@ test("SandboxController: idle pause uses a short QMP socket", async () => {
     controller.scheduleIdlePause();
     await waitFor(() => seenCommands.includes("stop"));
 
-    const resume = controller.resumeForActivity();
-    if (resume) await resume;
+    const first = controller.resumeForActivity();
+    assert.ok(first);
+    assert.equal(controller.resumeForActivity(), first);
+    await assert.rejects(first, /sync failed/);
+    await flush();
+
+    const retry = controller.resumeForActivity();
+    assert.ok(retry);
+    await retry;
+    assert.equal(syncAttempts, 2);
 
     assert.deepEqual(
       seenCommands.filter(

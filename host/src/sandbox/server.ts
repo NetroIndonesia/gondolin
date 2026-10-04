@@ -47,8 +47,10 @@ import {
   installSandboxServerOps,
 } from "./server-ops.ts";
 import { errorMessage } from "../utils/error.ts";
+import type { TimeSync } from "./virtio-protocol.ts";
 
 const DEFAULT_MAX_STDIN_BYTES = 64 * 1024;
+const TIME_SYNC_TIMEOUT_MS = 3000;
 
 type FileReadOperation = {
   /** file operation kind */
@@ -201,6 +203,12 @@ export class SandboxServer extends EventEmitter {
   private readonly options: ResolvedSandboxServerOptions;
   private readonly controller: SandboxControllerLike;
   private readonly bridge: VirtioBridge;
+  private nextTimeSyncId = 0x80000000;
+  private pendingTimeSync: {
+    id: number;
+    resolve: () => void;
+    reject: (error: Error) => void;
+  } | null = null;
   private readonly fsBridge: VirtioBridge;
   private readonly sshBridge: VirtioBridge;
   private readonly ingressBridge: VirtioBridge;
@@ -273,6 +281,34 @@ export class SandboxServer extends EventEmitter {
   private vfsReady = false;
   private vfsReadyTimer: NodeJS.Timeout | null = null;
   private bootConfig: SandboxFsConfig | null = null;
+
+  private async syncGuestClock(): Promise<void> {
+    const id = this.nextTimeSyncId++;
+    if (this.nextTimeSyncId > 0xffffffff) this.nextTimeSyncId = 0x80000000;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        fail(new Error("guest time sync timed out (update sandbox helpers)"));
+      }, TIME_SYNC_TIMEOUT_MS);
+      timer.unref?.();
+      const finish = (error?: Error) => {
+        clearTimeout(timer);
+        this.pendingTimeSync = null;
+        if (error) reject(error);
+        else resolve();
+      };
+      const fail = (error: Error) => finish(error);
+      this.pendingTimeSync = { id, resolve: () => finish(), reject: fail };
+      const message: TimeSync = {
+        v: 1,
+        t: "time_sync",
+        id,
+        p: { unix_ms: Date.now() },
+      };
+      if (!this.bridge.send(message)) {
+        fail(new Error("virtio bridge queue exceeded during time sync"));
+      }
+    });
+  }
 
   /** @internal resolved VM backend name */
   getVmmBackend(): "qemu" | "krun" {
@@ -412,6 +448,7 @@ export class SandboxServer extends EventEmitter {
         cpu: this.options.cpu,
         console: this.options.console,
         qemuIdlePauseMs: this.options.qemuIdlePauseMs,
+        onResume: () => this.syncGuestClock(),
         autoRestart: this.options.autoRestart,
       };
       this.controller = new SandboxController(sandboxConfig);
@@ -510,6 +547,9 @@ export class SandboxServer extends EventEmitter {
         this.ingressBridge.connect();
       }
       if (state === "stopped") {
+        this.pendingTimeSync?.reject(
+          new Error("sandbox stopped during time sync"),
+        );
         // The controller emits state="stopped" before emitting "exit".
         // Defer failing inflight requests so the exit handler can include the
         // exit code/signal and (sanitized) QEMU stderr hint.
@@ -736,7 +776,17 @@ export class SandboxServer extends EventEmitter {
         this.resolveFileOperation(message.id);
       } else if (message.t === "file_delete_done") {
         this.resolveFileOperation(message.id);
+      } else if (message.t === "time_sync_done") {
+        if (message.id === this.pendingTimeSync?.id) {
+          this.pendingTimeSync.resolve();
+        }
       } else if (message.t === "error") {
+        if (message.id === this.pendingTimeSync?.id) {
+          this.pendingTimeSync.reject(
+            new Error(`guest time sync failed: ${message.p.message}`),
+          );
+          return;
+        }
         const code = String(message.p.code ?? "");
         const client = this.inflight.get(message.id);
         const isExecLifecycleTracked =

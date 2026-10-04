@@ -94,6 +94,30 @@ export type FsResponse = {
   };
 };
 
+export type TimeSyncDone = {
+  /** protocol version */
+  v: number;
+  /** message type */
+  t: "time_sync_done";
+  /** sync request id */
+  id: number;
+  /** payload */
+  p: Record<string, never>;
+};
+
+export type TimeSync = {
+  /** protocol version */
+  v: number;
+  /** message type */
+  t: "time_sync";
+  /** sync request id */
+  id: number;
+  p: {
+    /** host wall-clock time since Unix epoch in `ms` */
+    unix_ms: number;
+  };
+};
+
 export type VfsReady = {
   /** protocol version */
   v: number;
@@ -257,6 +281,7 @@ export type IncomingMessage =
   | FsResponse
   | VfsReady
   | VfsError
+  | TimeSyncDone
   | TcpOpen
   | TcpOpened
   | TcpData
