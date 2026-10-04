@@ -20,8 +20,11 @@ All notable changes to Gondolin are documented here.
 - Add a Browser Use example that drives Chromium running inside a micro-VM through the ingress gateway.  #145
 - Add `gondolin image rm` (by ref, build id, `--untagged` or `--all`) and `gondolin build cache info|update|rm` for managing local images and the Alpine build cache.  `image ls` now lists untagged images.  #146
 - Automatically refresh cached Alpine `APKINDEX` files during `gondolin build` when a package download returns 404 because the cached index is stale.
-- Fix TCP sequence and acknowledgement numbers not wrapping at 2^32 in the QEMU network stack, which crashed the host process with `ERR_OUT_OF_RANGE` for connections with a high guest ISN or after ~4 GiB on one connection.  #119
+- Fix TCP sequence and acknowledgement numbers not wrapping at 2^32 in the QEMU network stack, which crashed the host process with `ERR_OUT_OF_RANGE` for connections with a high guest ISN or after ~4 GiB on one connection.  #119 #138
+- Re-sync the guest wall clock from the host after QEMU resumes from an idle pause, fixing `certificate is not yet valid` errors for MITM TLS and other clock-dependent tooling in long-lived VMs.  #148
 - Fix stale trailing bytes when guest processes shrink or `ftruncate()` files on `MemoryProvider` mounts: open `MemoryFileHandle`s now follow truncates done through the path or other handles.  sandboxfs also advertises `FUSE_ATOMIC_O_TRUNC` so `O_TRUNC` is applied on open.  #149
+- Generated HTTP-hook secret placeholders now default to a shared random marker plus the secret name (`<marker>.<secret_name>`) so secrets can be resolved by identifier.  Set `secretPlaceholderMode: "unique"` to keep fully random per-secret placeholders.  #122 #123
+- `--host-secret NAME` no longer requires explicit hosts: Gondolin uses a managed TruffleHog helper to suggest hosts for the secret and asks for confirmation.  Inspect the helper with `gondolin tools trufflehog`.  #120
 - Fix HTTPS egress when the host runs on Bun: select MITM certificates by pre-parsing the guest ClientHello SNI (Bun does not call `SNICallback`), and end MITM TLS sessions only after the full response reached the guest flow. #147 #73
 
 ## 0.12.0
