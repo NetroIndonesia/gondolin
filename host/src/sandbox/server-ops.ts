@@ -255,6 +255,7 @@ export class SandboxServerOps {
       resolve: resolveDone,
       reject: rejectDone,
     } = Promise.withResolvers<void>();
+    void done.catch(() => {});
 
     this.fileOps.set(id, {
       kind: "write",
@@ -330,6 +331,7 @@ export class SandboxServerOps {
       resolve: resolveDone,
       reject: rejectDone,
     } = Promise.withResolvers<void>();
+    void done.catch(() => {});
 
     this.fileOps.set(id, {
       kind: "delete",
