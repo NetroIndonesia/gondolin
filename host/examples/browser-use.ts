@@ -22,7 +22,7 @@ const CDP_PORT = 9222;
 const CDP_TIMEOUT_MS = 15_000;
 const IMAGE = process.env.BROWSER_USE_IMAGE ?? "browser-use:latest";
 
-const browserUseAgent = String.raw`
+const browserUseAgent = `
 import asyncio
 import os
 import sys

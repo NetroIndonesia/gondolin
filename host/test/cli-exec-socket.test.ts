@@ -259,10 +259,7 @@ test("cli exec --sock replenishes credits for large stdout and stderr", async ()
       "large-output",
     ]);
     assert.equal(result.status, 0);
-    assert.equal(
-      result.stdout,
-      stdoutOutput.toString(),
-    );
+    assert.equal(result.stdout, stdoutOutput.toString());
     assert.equal(result.stderr, stderrOutput.toString());
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));

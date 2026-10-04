@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { buildAlpineImages } from "./alpine.ts";
 import { gondolinCacheDir } from "../cache.ts";
 import { type Architecture, type BuildConfig, hasOciRootfs } from "./config.ts";
-import { extractTarGz, parseTar } from "../alpine/tar.ts";
+import { extractTarGz } from "../alpine/tar.ts";
 import { downloadFile, DownloadFileError } from "../alpine/utils.ts";
 import {
   DEFAULT_ROOTFS_PACKAGES,
