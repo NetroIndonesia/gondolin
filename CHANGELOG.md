@@ -31,6 +31,7 @@ All notable changes to Gondolin are documented here.
 - Create the standard `/dev/fd`, `/dev/stdin`, `/dev/stdout` and `/dev/stderr` symlinks in the guest so bash process substitution works (requires rebuilding images).  #118
 - Bind-mount `/dev` into the `postBuild.commands` chroot so commands can use `/dev/null` and friends.  #153
 - Fix concurrent `vm.fs` operations (e.g. parallel `writeFile()` calls) interleaving on the guest protocol and hanging forever: file operations are now strictly serialized.  #137
+- Fix krun boots failing with `InvalidGuestAddress` on x86_64 because of a 0-byte `krun-empty-initrd`: builds now emit a valid empty cpio archive and 0-byte initrds from older images are replaced at runtime.  #91
 
 ## 0.12.0
 

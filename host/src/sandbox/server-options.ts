@@ -32,6 +32,10 @@ import {
 import type { SshOptions } from "../qemu/ssh.ts";
 import type { TcpOptions } from "../qemu/tcp.ts";
 import type { VirtualProvider } from "../vfs/node/index.ts";
+import {
+  ensureEmptyInitrdFile,
+  getDefaultKrunInitrdPath,
+} from "../utils/empty-initrd.ts";
 import { isPathWithin } from "../utils/path.ts";
 
 const require = createRequire(import.meta.url);
@@ -573,21 +577,6 @@ type KrunKernelOverride = {
   initrdPath: string;
 };
 
-function getDefaultKrunInitrdPath(): string {
-  return path.join(os.tmpdir(), "gondolin-krun-empty-initrd");
-}
-
-function ensureEmptyInitrdFile(initrdPath: string): boolean {
-  try {
-    if (fs.existsSync(initrdPath)) return true;
-    fs.mkdirSync(path.dirname(initrdPath), { recursive: true });
-    fs.writeFileSync(initrdPath, "");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function resolveManifestAssetPath(
   imageDir: string,
   relPath: string,
@@ -626,7 +615,7 @@ function resolveKrunInitrdPath(
   }
 
   const initrdPath = getDefaultKrunInitrdPath();
-  if (!ensureEmptyInitrdFile(initrdPath) && !fs.existsSync(initrdPath)) {
+  if (!ensureEmptyInitrdFile(initrdPath)) {
     throw new Error(`failed to create default krun initrd at ${initrdPath}`);
   }
 

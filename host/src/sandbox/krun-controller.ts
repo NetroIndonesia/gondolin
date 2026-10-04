@@ -12,6 +12,7 @@ import {
   trackChild,
 } from "./child-process.ts";
 import type { SandboxState } from "./controller.ts";
+import { resolveUsableKrunInitrd } from "../utils/empty-initrd.ts";
 
 function resolveExecutableForInspection(executable: string): string {
   if (path.isAbsolute(executable) || executable.includes(path.sep)) {
@@ -280,7 +281,7 @@ function buildRunnerConfig(config: KrunConfig): KrunRunnerConfig {
 
   return {
     kernelPath: config.kernelPath,
-    initrdPath: config.initrdPath,
+    initrdPath: resolveUsableKrunInitrd(config.initrdPath),
     rootDiskPath: config.rootDiskPath,
     rootDiskFormat: config.rootDiskFormat,
     rootDiskReadOnly: config.rootDiskReadOnly ?? false,

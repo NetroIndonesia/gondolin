@@ -9,6 +9,7 @@ import { gondolinCacheDir } from "../cache.ts";
 import { type Architecture, type BuildConfig, hasOciRootfs } from "./config.ts";
 import { extractTarGz } from "../alpine/tar.ts";
 import { downloadFile, DownloadFileError } from "../alpine/utils.ts";
+import { createEmptyInitrd } from "../utils/empty-initrd.ts";
 import {
   DEFAULT_ROOTFS_PACKAGES,
   INITRAMFS_FILENAME,
@@ -265,7 +266,7 @@ async function fetchKrunBootAssets(
 
   fs.copyFileSync(casKernelPath, kernelPath);
   if (!fs.existsSync(initrdPath)) {
-    fs.writeFileSync(initrdPath, "");
+    fs.writeFileSync(initrdPath, createEmptyInitrd());
   }
 }
 
