@@ -726,6 +726,22 @@ class MemoryProvider extends VirtualProvider {
     this.linkSync(existingPath, newPath);
   }
 
+  // XXX(patch): Custom code/changes added for Gondolin
+  // Add chmod support so fs-rpc SETATTR mode changes work on MemoryProvider
+  chmodSync(path, mode) {
+    if (this.readonly) {
+      throw createEROFS('chmod', path);
+    }
+
+    const entry = this._getEntry(this._normalizePath(path), 'chmod', true);
+    entry.mode = mode & 0o7777;
+    entry.ctime = DateNow();
+  }
+
+  async chmod(path, mode) {
+    this.chmodSync(path, mode);
+  }
+
   readlinkSync(path, options) {
     const normalized = this._normalizePath(path);
     const entry = this._getEntry(normalized, 'readlink', false);

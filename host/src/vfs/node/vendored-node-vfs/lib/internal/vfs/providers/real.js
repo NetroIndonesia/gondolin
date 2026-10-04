@@ -27,6 +27,10 @@ const {
 const { errno: ERRNO } = os.constants;
 
 // XXX(patch): Custom code/changes added for Gondolin
+// Permission bits plus sticky; setuid/setgid are never applied to host files.
+const kChmodAllowedBits = 0o1777;
+
+// XXX(patch): Custom code/changes added for Gondolin
 // This vendored provider intentionally carries local security/compat extensions
 // (symlink-escape hardening, hard-link support wiring, and statfs support)
 
@@ -408,6 +412,20 @@ class RealFSProvider extends VirtualProvider {
     const existingRealPath = this._resolvePathFollow(existingVfsPath);
     const newRealPath = this._resolvePathNoFollowFinal(newVfsPath);
     return fs.promises.link(existingRealPath, newRealPath);
+  }
+
+  // XXX(patch): Custom code/changes added for Gondolin
+  // chmod follows symlinks (like chmod(2)) and is confined to the root.
+  // setuid/setgid bits are dropped so guests cannot plant set-id binaries
+  // in host directories.
+  chmodSync(vfsPath, mode) {
+    const realPath = this._resolvePathFollow(vfsPath);
+    fs.chmodSync(realPath, mode & kChmodAllowedBits);
+  }
+
+  async chmod(vfsPath, mode) {
+    const realPath = this._resolvePathFollow(vfsPath);
+    return fs.promises.chmod(realPath, mode & kChmodAllowedBits);
   }
 
   readlinkSync(vfsPath, options) {

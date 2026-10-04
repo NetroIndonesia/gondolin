@@ -95,6 +95,9 @@ export type VirtualProvider = {
   renameSync(oldPath: string, newPath: string): void;
   link?(existingPath: string, newPath: string): Promise<void>;
   linkSync?(existingPath: string, newPath: string): void;
+  /** change permission bits of `path` (follows symlinks like `chmod(2)`) */
+  chmod?(path: string, mode: number): Promise<void>;
+  chmodSync?(path: string, mode: number): void;
   readFile?(
     path: string,
     options?: { encoding?: BufferEncoding } | BufferEncoding,
@@ -153,6 +156,8 @@ type LinkCapableProviderMethods = Required<
     VirtualProvider,
     | "link"
     | "linkSync"
+    | "chmod"
+    | "chmodSync"
     | "realpath"
     | "realpathSync"
     | "readlink"

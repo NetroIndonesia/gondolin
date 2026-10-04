@@ -127,3 +127,41 @@ async function readMemoryFile(provider: MemoryProvider, path: string) {
     await handle.close();
   }
 }
+
+test("SandboxVfsProvider chmod delegates and emits hooks", async () => {
+  const provider = new MemoryProvider();
+  provider.writeFileSync!("/run.sh", "#!/bin/sh\n");
+  const events: string[] = [];
+
+  const vfs = new SandboxVfsProvider(provider, {
+    before: (ctx) => {
+      events.push(`before:${ctx.op}:${ctx.path}:${ctx.mode?.toString(8)}`);
+    },
+    after: (ctx) => {
+      events.push(`after:${ctx.op}:${ctx.path}`);
+    },
+  });
+
+  await vfs.chmod("/run.sh", 0o755);
+  assert.equal((await vfs.stat("/run.sh")).mode & 0o7777, 0o755);
+  assert.deepEqual(events.slice(0, 2), [
+    "before:chmod:/run.sh:755",
+    "after:chmod:/run.sh",
+  ]);
+});
+
+test("SandboxVfsProvider chmod returns ENOSYS without backend support", async () => {
+  const backend = new MemoryProvider();
+  const provider = new Proxy(backend as any, {
+    get(target, prop, receiver) {
+      if (prop === "chmod") return undefined;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  const vfs = new SandboxVfsProvider(provider);
+
+  await assert.rejects(
+    () => vfs.chmod("/missing", 0o755),
+    (err: NodeJS.ErrnoException) => err.errno === ERRNO.ENOSYS,
+  );
+});

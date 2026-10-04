@@ -932,6 +932,98 @@ test("fs rpc link creates hard links with RealFSProvider", async () => {
   }
 });
 
+async function createFile(service: FsRpcService, name: string) {
+  const created = await send(service, "create", {
+    parent_ino: 1,
+    name,
+    mode: 0o644,
+    flags: 0,
+  });
+  assert.equal(created.p.err, 0);
+  await send(service, "release", { fh: created.p.res?.fh as number });
+  return (created.p.res?.entry as any).ino as number;
+}
+
+test("fs rpc chmod updates mode bits with MemoryProvider", async () => {
+  const service = createService();
+  const ino = await createFile(service, "script.sh");
+
+  const chmod = await send(service, "chmod", { ino, mode: 0o755 });
+  assert.equal(chmod.p.err, 0);
+
+  const attr = await send(service, "getattr", { ino });
+  assert.equal(attr.p.err, 0);
+  const mode = (attr.p.res?.attr as any).mode as number;
+  assert.equal(mode & 0o7777, 0o755);
+  assert.equal(mode & 0o170000, 0o100000);
+
+  await service.close();
+});
+
+test("fs rpc chmod updates mode bits with RealFSProvider", async () => {
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "gondolin-fs-rpc-chmod-"),
+  );
+  const service = new FsRpcService(new RealFSProvider(tempDir));
+
+  try {
+    const ino = await createFile(service, "script.sh");
+
+    const chmod = await send(service, "chmod", { ino, mode: 0o750 });
+    assert.equal(chmod.p.err, 0);
+    const hostStats = await fs.stat(path.join(tempDir, "script.sh"));
+    assert.equal(hostStats.mode & 0o7777, 0o750);
+
+    // setuid/setgid bits must never reach host files
+    const setuid = await send(service, "chmod", { ino, mode: 0o6755 });
+    assert.equal(setuid.p.err, 0);
+    const afterSetuid = await fs.stat(path.join(tempDir, "script.sh"));
+    assert.equal(afterSetuid.mode & 0o7777, 0o755);
+
+    const attr = await send(service, "getattr", { ino });
+    assert.equal((attr.p.res?.attr as any).mode & 0o7777, 0o755);
+  } finally {
+    await service.close();
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("fs rpc chmod returns EROFS on readonly providers", async () => {
+  const base = new MemoryProvider();
+  base.writeFileSync!("/file.txt", "x");
+  const service = new FsRpcService(new ReadonlyProvider(base));
+
+  const lookup = await send(service, "lookup", {
+    parent_ino: 1,
+    name: "file.txt",
+  });
+  const ino = (lookup.p.res?.entry as any).ino as number;
+  const chmod = await send(service, "chmod", { ino, mode: 0o755 });
+  assert.equal(chmod.p.err, ERRNO.EROFS);
+  assert.equal(base.statSync("/file.txt").mode & 0o777, 0o644);
+
+  await service.close();
+});
+
+test("fs rpc chmod returns ENOSYS when provider lacks chmod support", async () => {
+  const base = new MemoryProvider();
+  const provider = new Proxy(base as any, {
+    get(target, prop, receiver) {
+      if (prop === "chmod") {
+        return undefined;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  const service = new FsRpcService(provider);
+  const ino = await createFile(service, "file.txt");
+
+  const chmod = await send(service, "chmod", { ino, mode: 0o755 });
+  assert.equal(chmod.p.err, ERRNO.ENOSYS);
+
+  await service.close();
+});
+
 test("fs rpc processes pipelined requests strictly in order", async () => {
   const base = new MemoryProvider();
   base.writeFileSync!("/a.txt", "a");

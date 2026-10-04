@@ -477,6 +477,30 @@ export class SandboxVfsProvider
     throw createErrnoError(ERRNO.ENOSYS, "link", oldPath);
   }
 
+  async chmod(path: string, mode: number) {
+    if (this.readonly) {
+      throw createErrnoError(ERRNO.EROFS, "chmod", path);
+    }
+    if (!this.backend.chmod) {
+      throw createErrnoError(ERRNO.ENOSYS, "chmod", path);
+    }
+    await this.runBefore({ op: "chmod", path, mode });
+    await this.backend.chmod(path, mode);
+    await this.runAfter({ op: "chmod", path, mode });
+  }
+
+  chmodSync(path: string, mode: number) {
+    if (this.readonly) {
+      throw createErrnoError(ERRNO.EROFS, "chmod", path);
+    }
+    if (!this.backend.chmodSync) {
+      throw createErrnoError(ERRNO.ENOSYS, "chmod", path);
+    }
+    this.runBeforeSync({ op: "chmod", path, mode });
+    this.backend.chmodSync(path, mode);
+    this.runAfterSync({ op: "chmod", path, mode });
+  }
+
   async readlink(path: string, options?: object) {
     if (this.backend.readlink) {
       return this.backend.readlink(path, options);

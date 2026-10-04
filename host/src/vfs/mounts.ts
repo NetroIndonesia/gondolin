@@ -287,6 +287,22 @@ export class MountRouterProvider
     throw createErrnoError(ERRNO.ENOSYS, "link", existingPath);
   }
 
+  async chmod(entryPath: string, mode: number) {
+    const mount = this.requireMount(entryPath, "chmod");
+    if (mount.provider.chmod) {
+      return mount.provider.chmod(mount.relativePath, mode);
+    }
+    throw createErrnoError(ERRNO.ENOSYS, "chmod", entryPath);
+  }
+
+  chmodSync(entryPath: string, mode: number) {
+    const mount = this.requireMount(entryPath, "chmod");
+    if (mount.provider.chmodSync) {
+      return mount.provider.chmodSync(mount.relativePath, mode);
+    }
+    throw createErrnoError(ERRNO.ENOSYS, "chmod", entryPath);
+  }
+
   async readlink(entryPath: string, options?: object) {
     const mount = this.requireMount(entryPath, "readlink");
     if (mount.provider.readlink) {

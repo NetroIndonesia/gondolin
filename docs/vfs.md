@@ -99,6 +99,8 @@ Common pattern:
 - Symlinks that escape the exposed directory are blocked for operations that follow symlinks (open, stat, readdir, etc.)
 - Dangling symlinks are also blocked for follow-style operations (strict fail-closed behavior)
 - Operations that act on the symlink entry itself (lstat, readlink, unlink) are allowed
+- Guest `chmod` updates the host file's permission bits; setuid/setgid bits are
+  always dropped so the guest cannot plant set-id binaries on the host
 - Use this for persistence (outputs, caches) or for sharing a source tree
 
 Example:
@@ -318,6 +320,10 @@ Recommended starting points:
 
 - Extend `VirtualProviderClass` for a full read/write provider
 - Extend `ReadonlyVirtualProvider` for a synchronous, read-only provider
+
+Optional methods such as `link`, `symlink`, `chmod` and `statfs` can be left
+out; the guest then sees `ENOSYS` for the corresponding operation (for `chmod`,
+mode changes are silently ignored to keep tools like `cp -p` working).
 
 ## Gotchas
 

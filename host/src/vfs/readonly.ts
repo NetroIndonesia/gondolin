@@ -108,6 +108,14 @@ export class ReadonlyProvider
     throw createErrnoError(ERRNO.EROFS, "link", newPath);
   }
 
+  async chmod(path: string, _mode: number): Promise<void> {
+    throw createErrnoError(ERRNO.EROFS, "chmod", path);
+  }
+
+  chmodSync(path: string, _mode: number): void {
+    throw createErrnoError(ERRNO.EROFS, "chmod", path);
+  }
+
   async readlink(path: string, options?: object): Promise<string> {
     if (this.backend.readlink) {
       return this.backend.readlink(path, options);

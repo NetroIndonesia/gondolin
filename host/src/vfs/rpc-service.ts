@@ -209,6 +209,8 @@ export class FsRpcService {
         return this.handleAccess(req);
       case "truncate":
         return this.handleTruncate(req);
+      case "chmod":
+        return this.handleChmod(req);
       case "fallocate":
         return this.handleFallocate(req);
       case "copy_file_range":
@@ -590,6 +592,20 @@ export class FsRpcService {
     const size = requireUint(req.size ?? 0, "truncate", "size");
     const entryPath = this.requirePath(ino, "truncate");
     await this.truncatePath(entryPath, size);
+    return {};
+  }
+
+  private async handleChmod(req: Record<string, unknown>) {
+    const ino = requireUint(req.ino, "chmod", "ino");
+    const mode = requireUint(req.mode, "chmod", "mode");
+    const entryPath = this.requirePath(ino, "chmod");
+    const provider = this.provider as {
+      chmod?: (path: string, mode: number) => Promise<void>;
+    };
+    if (typeof provider.chmod !== "function") {
+      throw createErrnoError(ERRNO.ENOSYS, "chmod", entryPath);
+    }
+    await provider.chmod(entryPath, mode & 0o7777);
     return {};
   }
 

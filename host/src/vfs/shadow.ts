@@ -544,6 +544,48 @@ export class ShadowProvider
     return this.backend.renameSync(from, to);
   }
 
+  async chmod(entryPath: string, mode: number) {
+    const p = normalizeVfsPath(entryPath);
+
+    if (
+      this.shadowedFor("chmod", p) ||
+      (await this.resolvesToShadowed("chmod", p))
+    ) {
+      return this.writeShadowed("chmod", p, async () => {
+        if (!this.tmpfs.chmod) {
+          throw createErrnoError(ERRNO.ENOSYS, "chmod", p);
+        }
+        return this.tmpfs.chmod(p, mode);
+      });
+    }
+
+    if (!this.backend.chmod) {
+      throw createErrnoError(ERRNO.ENOSYS, "chmod", p);
+    }
+    return this.backend.chmod(p, mode);
+  }
+
+  chmodSync(entryPath: string, mode: number) {
+    const p = normalizeVfsPath(entryPath);
+
+    if (
+      this.shadowedFor("chmod", p) ||
+      this.resolvesToShadowedSync("chmod", p)
+    ) {
+      return this.writeShadowedSync("chmod", p, () => {
+        if (!this.tmpfs.chmodSync) {
+          throw createErrnoError(ERRNO.ENOSYS, "chmod", p);
+        }
+        return this.tmpfs.chmodSync(p, mode);
+      });
+    }
+
+    if (!this.backend.chmodSync) {
+      throw createErrnoError(ERRNO.ENOSYS, "chmod", p);
+    }
+    return this.backend.chmodSync(p, mode);
+  }
+
   async readlink(entryPath: string, options?: object) {
     const p = normalizeVfsPath(entryPath);
 

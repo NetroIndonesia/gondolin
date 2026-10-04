@@ -185,6 +185,43 @@ test("vfs can read large files without truncation", {
   });
 });
 
+test("vfs chmod from the guest updates mode bits", {
+  skip: skipVmTests,
+  timeout: timeoutMs,
+}, async () => {
+  await withVm(sharedVmKey, sharedVmOptions, async (vm) => {
+    await vm.start();
+
+    const result = await withTimeout(
+      vm.exec([
+        "/bin/sh",
+        "-c",
+        "printf '#!/bin/sh\\necho ran\\n' > /data/run.sh && chmod 750 /data/run.sh && stat -c %a /data/run.sh && /data/run.sh",
+      ]),
+      timeoutMs,
+    );
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `chmod failed (exit ${result.exitCode}): ${result.stderr.trim()}`,
+      );
+    }
+    assert.equal(result.stdout, "750\nran\n");
+    assert.equal(rootProvider.statSync("/run.sh").mode & 0o7777, 0o750);
+
+    roInnerProvider.writeFileSync!("/chmod-ro.txt", "ro");
+    const readonly = await withTimeout(
+      vm.exec(["/bin/sh", "-c", "chmod 777 /ro/chmod-ro.txt"]),
+      timeoutMs,
+    );
+    assert.notEqual(readonly.exitCode, 0);
+    assert.match(readonly.stderr, /Read-only file system/);
+    assert.equal(
+      roInnerProvider.statSync("/chmod-ro.txt").mode & 0o7777,
+      0o644,
+    );
+  });
+});
+
 test("vfs hooks can block writes", {
   skip: skipVmTests,
   timeout: timeoutMs,

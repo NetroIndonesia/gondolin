@@ -109,6 +109,14 @@ export abstract class ReadonlyVirtualProvider
     throw createErrnoError(ERRNO.EROFS, "symlink", entryPath);
   }
 
+  async chmod(entryPath: string, mode: number) {
+    return this.chmodSync(entryPath, mode);
+  }
+
+  chmodSync(entryPath: string, _mode: number): void {
+    throw createErrnoError(ERRNO.EROFS, "chmod", entryPath);
+  }
+
   // Convenience async wrappers for optional sync overrides
   async realpath(entryPath: string, options?: object): Promise<string> {
     return this.realpathSync(entryPath, options);

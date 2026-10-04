@@ -24,8 +24,8 @@ Detection hints:
 - `rg "XXX\(patch\):" src/vfs/node/vendored-node-vfs`
 
 Local Gondolin patches:
-- `lib/internal/vfs/providers/real.js` is intentionally kept with Gondolin hardening/extensions (`link`, `statfs`, symlink escape protection, canonical root handling)
-- `lib/internal/vfs/providers/memory.js` adds in-memory hard-link support used by host fs-rpc/FUSE paths
+- `lib/internal/vfs/providers/real.js` is intentionally kept with Gondolin hardening/extensions (`link`, `chmod`, `statfs`, symlink escape protection, canonical root handling)
+- `lib/internal/vfs/providers/memory.js` adds in-memory hard-link and `chmod` support used by host fs-rpc/FUSE paths
 - `lib/internal/vfs/file_handle.js` keeps `MemoryFileHandle` content in sync with its entry so truncates through the path or other handles are not undone by later writes
 - `lib/internal/vfs/stats.js` preserves provider-reported `nlink` for virtual file stats
 - `lib/internal/vfs/gondolin-shim.js` provides userland shims for `primordials`, `internalBinding`, and `internal/*` requires

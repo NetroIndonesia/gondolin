@@ -260,6 +260,7 @@ const FuseReleaseIn = struct {
 };
 
 const FattrFlags = struct {
+    pub const MODE: u32 = 1 << 0;
     pub const SIZE: u32 = 1 << 3;
 };
 
@@ -472,6 +473,22 @@ const SandboxFs = struct {
         }
 
         const setattr = try parseSetattr(payload);
+        if ((setattr.valid & FattrFlags.MODE) != 0) {
+            var fields = [_]fs_rpc.Field{
+                .{ .name = "ino", .value = .{ .UInt = header.nodeid } },
+                .{ .name = "mode", .value = .{ .UInt = setattr.mode & 0o7777 } },
+            };
+            var response = try self.rpc.?.request("chmod", &fields);
+            defer response.deinit();
+
+            // Older hosts and providers without chmod support report ENOSYS;
+            // keep the historical behavior of ignoring mode changes there.
+            if (response.err != 0 and errnoFromResponse(response.err) != .NOSYS) {
+                try sendError(self.fuse_fd, header.unique, errnoFromResponse(response.err));
+                return;
+            }
+        }
+
         if ((setattr.valid & FattrFlags.SIZE) != 0) {
             var fields = [_]fs_rpc.Field{
                 .{ .name = "ino", .value = .{ .UInt = header.nodeid } },

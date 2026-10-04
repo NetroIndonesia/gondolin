@@ -314,3 +314,23 @@ function createErrorWithErrno(code: string, errno: number) {
   error.errno = errno;
   return error;
 }
+
+test("MountRouterProvider chmod delegates or reports ENOSYS", async () => {
+  const memory = new MemoryProvider();
+  memory.writeFileSync!("/file.txt", "x");
+  const withoutChmod = new Proxy(new MemoryProvider() as any, {
+    get(target, prop, receiver) {
+      if (prop === "chmod") return undefined;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+  const router = new MountRouterProvider({
+    "/data": memory,
+    "/other": withoutChmod,
+  });
+
+  await router.chmod("/data/file.txt", 0o700);
+  assert.equal(memory.statSync("/file.txt").mode & 0o7777, 0o700);
+  await assert.rejects(() => router.chmod("/other/file.txt", 0o700), isENOSYS);
+  await assert.rejects(() => router.chmod("/nowhere/file", 0o700), isENOENT);
+});
