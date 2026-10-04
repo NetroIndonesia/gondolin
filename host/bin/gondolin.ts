@@ -58,6 +58,7 @@ import {
   type ServerMessage,
   type SnapshotResponseMessage,
 } from "../src/sandbox/control-protocol.ts";
+import { errorMessage } from "../src/utils/error.ts";
 
 type Command = {
   cmd: string;
@@ -206,7 +207,7 @@ function renderCliError(err: unknown) {
     }
   }
 
-  const message = err instanceof Error ? err.message : String(err);
+  const message = errorMessage(err);
   console.error(message);
 }
 
@@ -880,7 +881,7 @@ function parseRootfsSizeOption(
   try {
     parseDiskSizeToBytes(value);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = errorMessage(err);
     fail(`invalid --rootfs-size: ${message}`);
   }
   return value;
@@ -1233,7 +1234,7 @@ function parseExecArgs(argv: string[]): ExecArgs {
           const mapping = parseTcpMapSpec(spec);
           args.common.tcpHostMappings[mapping.key] = mapping.value;
         } catch (err) {
-          fail(err instanceof Error ? err.message : String(err));
+          fail(errorMessage(err));
         }
         return i;
       }
@@ -1265,7 +1266,7 @@ function parseExecArgs(argv: string[]): ExecArgs {
         try {
           args.common.sshCredentials.push(parseSshCredential(spec));
         } catch (err) {
-          fail(err instanceof Error ? err.message : String(err));
+          fail(errorMessage(err));
         }
         return i;
       }
@@ -1587,7 +1588,7 @@ function parseBashArgs(argv: string[]): BashArgs {
       try {
         args.vmm = parseVmmOption(raw);
       } catch (err) {
-        console.error(err instanceof Error ? err.message : String(err));
+        console.error(errorMessage(err));
         process.exit(1);
       }
       continue;
@@ -1646,7 +1647,7 @@ function parseBashArgs(argv: string[]): BashArgs {
         try {
           args.vmm = parseVmmOption(value);
         } catch (err) {
-          console.error(err instanceof Error ? err.message : String(err));
+          console.error(errorMessage(err));
           process.exit(1);
         }
         break;
@@ -1716,7 +1717,7 @@ function parseBashArgs(argv: string[]): BashArgs {
           const mapping = parseTcpMapSpec(spec);
           args.tcpHostMappings[mapping.key] = mapping.value;
         } catch (err) {
-          console.error(err instanceof Error ? err.message : String(err));
+          console.error(errorMessage(err));
           process.exit(1);
         }
         break;
@@ -1758,7 +1759,7 @@ function parseBashArgs(argv: string[]): BashArgs {
         try {
           args.sshCredentials.push(parseSshCredential(spec));
         } catch (err) {
-          console.error(err instanceof Error ? err.message : String(err));
+          console.error(errorMessage(err));
           process.exit(1);
         }
         break;
@@ -2692,7 +2693,7 @@ async function runBuild(argv: string[]) {
     try {
       config = parseBuildConfig(configContent);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = errorMessage(err);
       console.error(`Failed to parse config: ${message}`);
       process.exit(1);
     }
@@ -2755,7 +2756,7 @@ async function runBuild(argv: string[]) {
       }
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = errorMessage(err);
     throw new Error(`Build failed: ${message}`);
   } finally {
     if (cleanupOutputDir) {

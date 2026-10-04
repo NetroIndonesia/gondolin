@@ -581,7 +581,8 @@ function mergeEntries(
   return dirents;
 }
 
-function getEntryName(entry: string | fs.Dirent) {
+/** @internal */
+export function getEntryName(entry: string | fs.Dirent) {
   return typeof entry === "string" ? entry : entry.name;
 }
 

@@ -3,59 +3,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { normalizeVersion, parseArgs, requireArg } from "./lib/cli.mjs";
+
 const RELEASE_ARTIFACT_KIND = "gondolin-sandbox-helpers-release-artifact";
 const ARCHS = ["aarch64", "x86_64"];
-const VERSION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._+-]*$/;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/i;
 const BUILD_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function usage() {
   return `Usage: node scripts/update-sandbox-helper-registry.mjs --version <version> --release-tag <tag> --owner <owner> --repo <repo> [options]\n\nOptions:\n  --registry <path>       Registry JSON path (default: builtin-sandbox-helper-registry.json)\n  --metadata-dir <path>   Directory containing *.meta.json files (default: cwd)\n`;
-}
-
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i++) {
-    const token = argv[i];
-    if (token === "--help" || token === "-h") {
-      args.help = true;
-      continue;
-    }
-    if (!token.startsWith("--")) {
-      throw new Error(`unexpected argument: ${token}`);
-    }
-
-    const eq = token.indexOf("=");
-    if (eq >= 0) {
-      args[token.slice(2, eq)] = token.slice(eq + 1);
-      continue;
-    }
-
-    const key = token.slice(2);
-    const value = argv[++i];
-    if (value === undefined) {
-      throw new Error(`missing value for --${key}`);
-    }
-    args[key] = value;
-  }
-  return args;
-}
-
-function requireArg(args, name) {
-  const value = args[name];
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`missing required --${name}`);
-  }
-  return value.trim();
-}
-
-function normalizeVersion(value) {
-  const version = value.trim().replace(/^v/, "");
-  if (!VERSION_PATTERN.test(version)) {
-    throw new Error(`invalid version: ${value}`);
-  }
-  return version;
 }
 
 function walkFiles(dir) {

@@ -6,6 +6,7 @@ import {
   ensureTrufflehogBinary,
   ensureTrufflehogSourceDir,
 } from "./build/trufflehog.ts";
+import { errorMessage } from "./utils/error.ts";
 
 const URL_RE = /https?:\/\/[^\s"'`<>]+/gi;
 const DETECTOR_SOURCE_SKIP_FILE_RE =
@@ -64,7 +65,7 @@ function parseTrufflehogJsonLines(stdout: string): TrufflehogFinding[] {
       findings.push(JSON.parse(trimmed) as TrufflehogFinding);
     } catch (error) {
       throw new Error(
-        `failed to parse trufflehog json line: ${error instanceof Error ? error.message : String(error)}`,
+        `failed to parse trufflehog json line: ${errorMessage(error)}`,
       );
     }
   }

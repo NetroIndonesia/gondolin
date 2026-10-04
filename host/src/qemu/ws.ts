@@ -258,6 +258,56 @@ export async function bridgeWebSocketUpgrade(
   return true;
 }
 
+function waitForSocketConnect(
+  socket: net.Socket,
+  connectEvent: "connect" | "secureConnect",
+  timeoutMs: number,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let timer: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      socket.off("error", onError);
+      socket.off(connectEvent, onConnect);
+    };
+
+    const onError = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const onConnect = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+      timer = setTimeout(() => {
+        onError(
+          new Error(`websocket upstream connect timeout after ${timeoutMs}ms`),
+        );
+        try {
+          socket.destroy();
+        } catch {
+          // ignore
+        }
+      }, timeoutMs);
+    }
+
+    socket.once("error", onError);
+    socket.once(connectEvent, onConnect);
+  });
+}
+
 export async function connectWebSocketUpstream(
   backend: QemuNetworkBackend,
   info: {
@@ -276,119 +326,13 @@ export async function connectWebSocketUpstream(
       servername: info.hostname,
       ALPNProtocols: ["http/1.1"],
     });
-
-    await new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let timer: NodeJS.Timeout | null = null;
-
-      const cleanup = () => {
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
-        }
-        socket.off("error", onError);
-        socket.off("secureConnect", onConnect);
-      };
-
-      const settleResolve = () => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve();
-      };
-
-      const settleReject = (err: Error) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        reject(err);
-      };
-
-      const onError = (err: Error) => {
-        settleReject(err);
-      };
-
-      const onConnect = () => {
-        settleResolve();
-      };
-
-      if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
-        timer = setTimeout(() => {
-          const err = new Error(
-            `websocket upstream connect timeout after ${timeoutMs}ms`,
-          );
-          settleReject(err);
-          try {
-            socket.destroy();
-          } catch {
-            // ignore
-          }
-        }, timeoutMs);
-      }
-
-      socket.once("error", onError);
-      socket.once("secureConnect", onConnect);
-    });
-
+    await waitForSocketConnect(socket, "secureConnect", timeoutMs);
     return socket;
   }
 
   const socket = new net.Socket();
   socket.connect(info.port, info.address);
-
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    let timer: NodeJS.Timeout | null = null;
-
-    const cleanup = () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      socket.off("error", onError);
-      socket.off("connect", onConnect);
-    };
-
-    const settleResolve = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve();
-    };
-
-    const settleReject = (err: Error) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(err);
-    };
-
-    const onError = (err: Error) => {
-      settleReject(err);
-    };
-
-    const onConnect = () => {
-      settleResolve();
-    };
-
-    if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
-      timer = setTimeout(() => {
-        const err = new Error(
-          `websocket upstream connect timeout after ${timeoutMs}ms`,
-        );
-        settleReject(err);
-        try {
-          socket.destroy();
-        } catch {
-          // ignore
-        }
-      }, timeoutMs);
-    }
-
-    socket.once("error", onError);
-    socket.once("connect", onConnect);
-  });
-
+  await waitForSocketConnect(socket, "connect", timeoutMs);
   return socket;
 }
 

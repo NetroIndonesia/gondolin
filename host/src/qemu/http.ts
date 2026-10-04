@@ -50,6 +50,7 @@ import {
   internalHttpResponseToWebResponse,
   responseHeadersToRecord,
 } from "../internal/http-conversion.ts";
+import { errorMessage } from "../utils/error.ts";
 
 const MAX_HTTP_REDIRECTS = 10;
 export { MAX_HTTP_HEADER_BYTES };
@@ -1384,7 +1385,7 @@ export async function fetchHookRequestAndRespond(
         evictSharedDispatcher(backend, originKey);
       }
       if (backend.options.debug) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = errorMessage(err);
         backend.emitDebug(
           `http bridge fetch failed ${currentRequest.method} ${currentUrl.toString()} (${message})`,
         );

@@ -10,6 +10,7 @@ import {
 } from "./qemu/img.ts";
 
 import {
+  findCommonAssetDir,
   loadAssetManifest,
   loadGuestAssets,
   type GuestAssets,
@@ -192,14 +193,6 @@ function validateGuestAssetsExist(assets: GuestAssets): boolean {
     fs.existsSync(assets.initrdPath) &&
     fs.existsSync(assets.rootfsPath)
   );
-}
-
-function findCommonAssetDir(assets: GuestAssets): string | null {
-  const kernelDir = path.dirname(assets.kernelPath);
-  const initrdDir = path.dirname(assets.initrdPath);
-  const rootfsDir = path.dirname(assets.rootfsPath);
-  if (kernelDir !== initrdDir || kernelDir !== rootfsDir) return null;
-  return kernelDir;
 }
 
 function devGuestOutDirs(): string[] {

@@ -71,6 +71,7 @@ import {
   type SyntheticDnsHostMappingMode,
 } from "./contracts.ts";
 import { QemuIcmpTracker, type IcmpTiming } from "./icmp.ts";
+import { errorMessage } from "../utils/error.ts";
 
 const GUEST_CLOSED_ERR = createGuestClosedError();
 
@@ -820,7 +821,7 @@ export class QemuNetworkBackend extends EventEmitter {
         mappedIpv4 = null;
         if (this.options.debug) {
           this.emitDebug(
-            `dns synthetic hostmap failed name=${JSON.stringify(query.firstQuestion.name)} err=${formatError(err)}`,
+            `dns synthetic hostmap failed name=${JSON.stringify(query.firstQuestion.name)} err=${errorMessage(err)}`,
           );
         }
       }
@@ -1503,9 +1504,4 @@ export class QemuNetworkBackend extends EventEmitter {
       return { keyPem, certPem };
     }
   }
-}
-
-function formatError(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
 }

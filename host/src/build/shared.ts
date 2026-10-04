@@ -10,6 +10,7 @@ import {
 import type { BuildConfig, Architecture } from "./config.ts";
 import { computeFileHash } from "./helpers.ts";
 import { ensureSandboxHelperBinaries } from "./sandbox-helpers.ts";
+import { errorMessage } from "../utils/error.ts";
 export { computeFileHash } from "./helpers.ts";
 
 /** Fixed output filenames for assets */
@@ -305,10 +306,6 @@ export type SandboxBinaryPaths = {
 function envFlagEnabled(name: string): boolean {
   const value = process.env[name]?.trim().toLowerCase();
   return value === "1" || value === "true" || value === "yes" || value === "on";
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function assertSandboxBinaryPathsExist(paths: SandboxBinaryPaths): void {

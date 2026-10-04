@@ -46,6 +46,7 @@ import {
   type SandboxServerOps,
   installSandboxServerOps,
 } from "./server-ops.ts";
+import { errorMessage } from "../utils/error.ts";
 
 const DEFAULT_MAX_STDIN_BYTES = 64 * 1024;
 
@@ -326,7 +327,7 @@ export class SandboxServer extends EventEmitter {
       );
     }
     this.on("error", (err) => {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = errorMessage(err);
       this.emitDebug("error", message);
     });
     // Detect if we received pre-resolved options (from static create())

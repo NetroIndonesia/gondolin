@@ -102,6 +102,7 @@ import {
   normalizeCommand,
   toAsyncIterable,
 } from "../exec.ts";
+import { errorMessage } from "../utils/error.ts";
 
 const MAX_REQUEST_ID = 0xffffffff;
 const DEFAULT_STDIN_CHUNK = 32 * 1024;
@@ -725,7 +726,7 @@ export class VM {
         // ignore
       }
       throw new Error(
-        `failed to run ssh-keygen (needed for vm.enableSsh): ${err instanceof Error ? err.message : String(err)}`,
+        `failed to run ssh-keygen (needed for vm.enableSsh): ${errorMessage(err)}`,
       );
     }
 
@@ -916,8 +917,7 @@ fi
     }
 
     if (lastErr) {
-      const detail =
-        lastErr instanceof Error ? lastErr.message : String(lastErr);
+      const detail = errorMessage(lastErr);
       throw new Error(`ssh port-forward is not available: ${detail}`);
     }
 

@@ -7,7 +7,11 @@ import os from "node:os";
 import path from "node:path";
 
 import { loadAssetManifest } from "../assets.ts";
-import type { BuildConfig } from "./config.ts";
+import {
+  type BuildConfig,
+  hasOciRootfs,
+  hasPostBuildCommands,
+} from "./config.ts";
 import { detectHostArchitectureSync } from "../host/arch.ts";
 import { buildInContainer } from "./container.ts";
 import {
@@ -18,14 +22,6 @@ import {
 import { buildNative } from "./native.ts";
 
 export type { BuildOptions, BuildResult } from "./shared.ts";
-
-function hasPostBuildCommands(config: BuildConfig): boolean {
-  return (config.postBuild?.commands?.length ?? 0) > 0;
-}
-
-function hasOciRootfs(config: BuildConfig): boolean {
-  return config.oci !== undefined;
-}
 
 /** Determine if we need to use a container for the build */
 function shouldUseContainer(config: BuildConfig): boolean {

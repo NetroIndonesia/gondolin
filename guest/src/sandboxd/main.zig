@@ -235,7 +235,7 @@ pub fn main() !void {
 
     log.info("starting", .{});
 
-    const virtio_fd = try openVirtioPort();
+    const virtio_fd = try sandboxd.virtio_port.open("virtio-port", log);
     defer posix.close(virtio_fd);
 
     var tx = VirtioTx{ .fd = virtio_fd };
@@ -555,72 +555,6 @@ fn readVfsErrorMessage(allocator: std.mem.Allocator) !?[]u8 {
         try out.appendSlice(allocator, buffer[0..n]);
     }
     return try out.toOwnedSlice(allocator);
-}
-
-fn tryOpenVirtioPath(path: []const u8) !?posix.fd_t {
-    const fd = posix.open(path, .{ .ACCMODE = .RDWR, .NONBLOCK = true, .CLOEXEC = true }, 0) catch |err| switch (err) {
-        error.FileNotFound, error.NoDevice => return null,
-        else => return err,
-    };
-
-    const original_flags = try posix.fcntl(fd, posix.F.GETFL, 0);
-    const nonblock_flag: c_int = @bitCast(posix.O{ .NONBLOCK = true });
-    _ = try posix.fcntl(fd, posix.F.SETFL, original_flags & ~nonblock_flag);
-
-    return fd;
-}
-
-fn scanVirtioPorts() !?posix.fd_t {
-    var threaded: std.Io.Threaded = .init_single_threaded;
-    const io = threaded.io();
-    var dev_dir = std.Io.Dir.openDirAbsolute(io, "/dev", .{ .iterate = true }) catch return null;
-    defer dev_dir.close(io);
-
-    var it = dev_dir.iterate();
-    var path_buf: [64]u8 = undefined;
-    while (try it.next(io)) |entry| {
-        if (!std.mem.startsWith(u8, entry.name, "vport")) continue;
-        if (!virtioPortMatches(entry.name, "virtio-port")) continue;
-        const path = try std.mem.print(&path_buf, "/dev/{s}", .{entry.name});
-        if (try tryOpenVirtioPath(path)) |fd| return fd;
-    }
-
-    return null;
-}
-
-fn virtioPortMatches(port_name: []const u8, expected: []const u8) bool {
-    var path_buf: [128]u8 = undefined;
-    const sys_path = std.mem.print(&path_buf, "/sys/class/virtio-ports/{s}/name", .{port_name}) catch return false;
-    const fd = posix.open(sys_path, .{ .ACCMODE = .RDONLY, .CLOEXEC = true }, 0) catch return false;
-    defer posix.close(fd);
-
-    var name_buf: [64]u8 = undefined;
-    const size = posix.read(fd, &name_buf) catch return false;
-    const trimmed = std.mem.trim(u8, name_buf[0..size], " \r\n\t");
-    return std.mem.eql(u8, trimmed, expected);
-}
-
-fn openVirtioPort() !posix.fd_t {
-    const paths = [_][]const u8{
-        "/dev/virtio-ports/virtio-port",
-    };
-
-    var warned = false;
-
-    while (true) {
-        for (paths) |path| {
-            if (try tryOpenVirtioPath(path)) |fd| return fd;
-        }
-
-        if (try scanVirtioPorts()) |fd| return fd;
-
-        if (!warned) {
-            log.info("waiting for virtio port", .{});
-            warned = true;
-        }
-
-        posix.nanosleep(0, 100 * std.time.ns_per_ms);
-    }
 }
 
 fn waitForVirtioData(virtio_fd: posix.fd_t) void {

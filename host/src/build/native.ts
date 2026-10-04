@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 
 import { buildAlpineImages } from "./alpine.ts";
 import { gondolinCacheDir } from "../cache.ts";
-import type { BuildConfig, Architecture } from "./config.ts";
+import { type Architecture, type BuildConfig, hasOciRootfs } from "./config.ts";
 import { parseApkIndex } from "../alpine/packages.ts";
 import { decompressTarGz, extractTarGz, parseTar } from "../alpine/tar.ts";
 import { downloadFile, DownloadFileError } from "../alpine/utils.ts";
@@ -28,10 +28,6 @@ import {
 const LIBKRUNFW_RELEASE_BASE_URL =
   "https://github.com/containers/libkrunfw/releases/download";
 const DEFAULT_LIBKRUNFW_VERSION = "v5.2.1";
-
-function hasOciRootfs(config: BuildConfig): boolean {
-  return config.oci !== undefined;
-}
 
 function resolveAlpineConfig(config: BuildConfig): ResolvedAlpineConfig {
   const alpine = config.alpine ?? { version: "3.23.0" };

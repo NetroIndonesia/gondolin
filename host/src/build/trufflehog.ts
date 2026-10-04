@@ -5,11 +5,13 @@ import { randomUUID } from "node:crypto";
 
 import { extractTarGz } from "../alpine/tar.ts";
 import {
-  cacheBaseDir,
-  downloadToBuffer,
   fetchCachedJsonRegistry,
   normalizeSha256,
-} from "./helpers.ts";
+  parseKeyedRegistry,
+  parseRegistryUrl,
+  resolveKeyedRegistryRef,
+} from "../registry.ts";
+import { cacheBaseDir, downloadToBuffer } from "./helpers.ts";
 
 const TRUFFLEHOG_REGISTRY_SCHEMA = 1 as const;
 const DEFAULT_TRUFFLEHOG_REF = "trufflehog:3.95.3";
@@ -146,35 +148,21 @@ function parseRegistryBuild(
   if (!platform) {
     throw new Error(`invalid ${where}.platform: ${String(rec.platform)}`);
   }
-  if (typeof rec.url !== "string") {
-    throw new Error(`invalid ${where}.url: expected string`);
-  }
-
-  let url: string;
-  try {
-    url = new URL(rec.url, baseUrl).toString();
-  } catch {
-    throw new Error(`invalid ${where}.url: ${rec.url}`);
-  }
-
   const build: TrufflehogRegistryBuild = {
     version: rec.version,
     platform,
-    url,
+    url: parseRegistryUrl(rec.url, `${where}.url`, baseUrl),
   };
 
   if (rec.sha256 !== undefined) {
     build.sha256 = normalizeSha256(rec.sha256, `${where}.sha256`);
   }
   if (rec.sourceUrl !== undefined) {
-    if (typeof rec.sourceUrl !== "string") {
-      throw new Error(`invalid ${where}.sourceUrl: expected string`);
-    }
-    try {
-      build.sourceUrl = new URL(rec.sourceUrl, baseUrl).toString();
-    } catch {
-      throw new Error(`invalid ${where}.sourceUrl: ${rec.sourceUrl}`);
-    }
+    build.sourceUrl = parseRegistryUrl(
+      rec.sourceUrl,
+      `${where}.sourceUrl`,
+      baseUrl,
+    );
   }
   if (rec.sourceSha256 !== undefined) {
     build.sourceSha256 = normalizeSha256(
@@ -190,89 +178,21 @@ function parseBuiltinTrufflehogRegistry(
   raw: unknown,
   sourceUrl: string,
 ): BuiltinTrufflehogRegistry {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error("invalid builtin trufflehog registry: expected object");
-  }
-  const rec = raw as Record<string, unknown>;
-  if (rec.schema !== TRUFFLEHOG_REGISTRY_SCHEMA) {
-    throw new Error(
-      `invalid builtin trufflehog registry schema: expected ${TRUFFLEHOG_REGISTRY_SCHEMA}`,
-    );
-  }
-  const baseUrl = new URL(sourceUrl);
-
-  if (
-    !rec.builds ||
-    typeof rec.builds !== "object" ||
-    Array.isArray(rec.builds)
-  ) {
-    throw new Error(
-      "invalid builtin trufflehog registry: builds must be an object",
-    );
-  }
-  const builds: Record<string, TrufflehogRegistryBuild> = {};
-  for (const [buildId, value] of Object.entries(
-    rec.builds as Record<string, unknown>,
-  )) {
-    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(buildId)) {
-      throw new Error(`invalid builtin trufflehog build id: ${buildId}`);
-    }
-    builds[buildId] = parseRegistryBuild(
-      value,
-      `builds['${buildId}']`,
-      baseUrl,
-    );
-  }
-
-  if (!rec.refs || typeof rec.refs !== "object" || Array.isArray(rec.refs)) {
-    throw new Error(
-      "invalid builtin trufflehog registry: refs must be an object",
-    );
-  }
-  const refs: Record<string, Partial<Record<SupportedPlatform, string>>> = {};
-  for (const [reference, value] of Object.entries(
-    rec.refs as Record<string, unknown>,
-  )) {
-    const canonical = parseRef(reference);
-    if (canonical !== reference) {
-      throw new Error(
-        `invalid builtin trufflehog registry ref key: ${reference}`,
-      );
-    }
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error(`invalid registry ref '${reference}': expected object`);
-    }
-    const mapped: Partial<Record<SupportedPlatform, string>> = {};
-    for (const [platformKey, buildIdValue] of Object.entries(
-      value as Record<string, unknown>,
-    )) {
-      const platform = normalizeSupportedPlatform(platformKey);
-      if (!platform) {
-        throw new Error(
-          `invalid registry ref '${reference}' platform key: ${platformKey}`,
-        );
+  const { refs, builds } = parseKeyedRegistry(raw, sourceUrl, {
+    label: "builtin trufflehog registry",
+    schema: TRUFFLEHOG_REGISTRY_SCHEMA,
+    keyName: "platform",
+    normalizeKey: normalizeSupportedPlatform,
+    normalizeBuildId: (buildId) => {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(buildId)) {
+        throw new Error(`invalid builtin trufflehog build id: ${buildId}`);
       }
-      if (typeof buildIdValue !== "string") {
-        throw new Error(
-          `invalid refs['${reference}']['${platformKey}']: expected build id string`,
-        );
-      }
-      const build = builds[buildIdValue];
-      if (!build) {
-        throw new Error(
-          `invalid refs['${reference}']['${platformKey}']: unknown build id ${buildIdValue}`,
-        );
-      }
-      if (build.platform !== platform) {
-        throw new Error(
-          `invalid refs['${reference}']['${platformKey}']: platform mismatch for build ${buildIdValue}`,
-        );
-      }
-      mapped[platform] = buildIdValue;
-    }
-    refs[canonical] = mapped;
-  }
-
+      return buildId;
+    },
+    canonicalRef: parseRef,
+    parseBuild: parseRegistryBuild,
+    buildKey: (build) => build.platform,
+  });
   return { schema: TRUFFLEHOG_REGISTRY_SCHEMA, refs, builds };
 }
 
@@ -298,22 +218,9 @@ async function resolveManagedBuild(
 ): Promise<{ ref: string; buildId: string; build: TrufflehogRegistryBuild }> {
   const registry = await fetchBuiltinTrufflehogRegistry({ storeDir });
   const ref = parseRef(DEFAULT_TRUFFLEHOG_REF);
-  const entries = registry.refs[ref];
-  if (!entries) {
-    throw new Error(`trufflehog ref not found in builtin registry: ${ref}`);
-  }
-  const buildId = entries[platform];
-  if (!buildId) {
-    throw new Error(
-      `trufflehog ref '${ref}' has no registry source for ${platform}`,
-    );
-  }
-  const build = registry.builds[buildId];
-  if (!build) {
-    throw new Error(
-      `trufflehog ref '${ref}' points to unknown registry build id: ${buildId}`,
-    );
-  }
+  const { buildId, build } = resolveKeyedRegistryRef(registry, ref, platform, {
+    label: "trufflehog",
+  });
   return { ref, buildId, build };
 }
 

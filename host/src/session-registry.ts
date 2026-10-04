@@ -18,6 +18,7 @@ import {
   type SnapshotResponseMessage,
   type StdinCommandMessage,
 } from "./sandbox/control-protocol.ts";
+import { errorMessage } from "./utils/error.ts";
 
 const SESSIONS_DIR =
   process.env.GONDOLIN_SESSIONS_DIR ?? gondolinCacheDir("sessions");
@@ -498,7 +499,7 @@ export class SessionIpcServer {
           },
         );
       } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
+        const detail = errorMessage(err);
         sendError(socket, "ipc_unavailable", detail);
         socket.destroy();
         return null;
@@ -530,7 +531,7 @@ export class SessionIpcServer {
       try {
         internalId = this.allocateInternalId();
       } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
+        const detail = errorMessage(err);
         sendError(socket, "queue_full", detail, message.id);
         return;
       }
@@ -552,7 +553,7 @@ export class SessionIpcServer {
         externalToInternal.delete(message.id);
         internalToExternal.delete(internalId);
         this.releaseInternalId(internalId);
-        const detail = err instanceof Error ? err.message : String(err);
+        const detail = errorMessage(err);
         sendError(socket, "ipc_error", detail, message.id);
       }
     };
@@ -575,7 +576,7 @@ export class SessionIpcServer {
       try {
         conn.send({ ...message, id: internalId } as ClientMessage);
       } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
+        const detail = errorMessage(err);
         sendError(socket, "ipc_error", detail, message.id);
       }
     };
@@ -632,7 +633,7 @@ export class SessionIpcServer {
           }
         })
         .catch((err) => {
-          const detail = err instanceof Error ? err.message : String(err);
+          const detail = errorMessage(err);
           sendError(socket, "snapshot_failed", detail, message.id);
         });
     };

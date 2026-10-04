@@ -45,6 +45,7 @@ import {
   type SandboxFsConfig,
 } from "./server-boot-config.ts";
 import { stripTrailingNewline } from "../debug.ts";
+import { errorMessage } from "../utils/error.ts";
 
 type BridgeWritableWaiter = {
   resolve: () => void;
@@ -909,7 +910,7 @@ export class SandboxServerOps {
     try {
       config = normalizeSandboxFsConfig(message);
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
+      const error = errorMessage(err);
       sendError(client, {
         type: "error",
         code: "invalid_request",
