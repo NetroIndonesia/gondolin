@@ -134,7 +134,10 @@ const RULES = [
   ],
   [
     "upstream CLI brand, capitalised",
-    new RegExp(`\\b${escapeRe(upstream.cli[0].toUpperCase() + upstream.cli.slice(1))}\\b`, "g"),
+    new RegExp(
+      `\\b${escapeRe(upstream.cli[0].toUpperCase() + upstream.cli.slice(1))}\\b`,
+      "g",
+    ),
     brand.cli,
   ],
   [
