@@ -75,6 +75,7 @@ jobs:
     uses: ./.github/workflows/sandbox-helpers-release.yml
     permissions:
       contents: write
+    secrets: inherit
     with:
       version: ${{ needs.create-release.outputs.npm_version }}
       source_ref: ${{ needs.create-release.outputs.release_tag }}
