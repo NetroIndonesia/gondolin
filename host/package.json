@@ -68,5 +68,19 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
-  }
+  },
+  "contributors": [
+    {
+      "name": "hshinosa",
+      "url": "https://github.com/hshinosa"
+    },
+    {
+      "name": "yhagus",
+      "url": "https://github.com/yhagus"
+    },
+    {
+      "name": "mmatttttt",
+      "url": "https://github.com/mmatttttt"
+    }
+  ]
 }

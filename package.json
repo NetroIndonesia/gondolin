@@ -14,5 +14,23 @@
     "@biomejs/biome": "2.5.15",
     "typescript": "7.0.2"
   },
-  "packageManager": "pnpm@12.8.1"
+  "packageManager": "pnpm@12.8.1",
+  "contributors": [
+    {
+      "name": "hshinosa",
+      "url": "https://github.com/hshinosa"
+    },
+    {
+      "name": "yhagus",
+      "url": "https://github.com/yhagus"
+    },
+    {
+      "name": "mmatttttt",
+      "url": "https://github.com/mmatttttt"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NetroIndonesia/gondolin"
+  }
 }
