@@ -1,25 +1,25 @@
 /**
- * Pi + Gondolin Sandbox Example (pi extension)
+ * Pi + Gondolin Sandbox Example (hxf extension)
  *
- * This extension overrides pi's built-in `read`/`write`/`edit`/`bash` tools so
+ * This extension overrides hxf's built-in `read`/`write`/`edit`/`bash` tools so
  * they execute inside a Gondolin micro-VM instead of on the host.
  *
- * The directory you start `pi` in is mounted read-write at `/workspace` inside
+ * The directory you start `hxf` in is mounted read-write at `/workspace` inside
  * the VM.
  *
  * How to run:
  *   1. Install dependencies for this repo (so imports resolve):
  *        pnpm install
  *   2. Ensure QEMU is installed (see the gondolin README "Quick Start")
- *   3. Start pi in the project you want to sandbox:
+ *   3. Start hxf in the project you want to sandbox:
  *        cd /path/to/your/project
- *        pi -e /absolute/path/to/gondolin/host/examples/pi-gondolin.ts
+ *        hxf -e /absolute/path/to/gondolin/host/examples/hxf-gondolin.ts
  *
  * Notes:
  *   - The VM is started on `session_start` (and lazily if a tool is used before that)
  *   - User `!` commands are also executed inside the VM
  *   - Module resolution happens relative to this file, so keeping it inside the
- *     gondolin repo (or installing `@earendil-works/gondolin` next to it) is easiest
+ *     gondolin repo (or installing `@netrodev/gondolin` next to it) is easiest
  */
 
 import { constants as fsConstants } from "node:fs";
@@ -28,7 +28,7 @@ import path from "node:path";
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from "@earendil-works/pi-coding-agent";
+} from "@NetroIndonesia/hxf-coding-agent";
 import {
   type BashOperations,
   createBashTool,
@@ -38,9 +38,9 @@ import {
   type EditOperations,
   type ReadOperations,
   type WriteOperations,
-} from "@earendil-works/pi-coding-agent";
+} from "@NetroIndonesia/hxf-coding-agent";
 
-import { RealFSProvider, VM } from "@earendil-works/gondolin";
+import { RealFSProvider, VM } from "@netrodev/gondolin";
 
 const GUEST_WORKSPACE = "/workspace";
 
@@ -50,7 +50,7 @@ function shQuote(value: string): string {
 }
 
 function toGuestPath(localCwd: string, localPath: string): string {
-  // pi tools pass absolute local paths; map them into /workspace.
+  // hxf tools pass absolute local paths; map them into /workspace.
   const rel = path.relative(localCwd, localPath);
   if (rel === "") return GUEST_WORKSPACE;
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
@@ -115,7 +115,7 @@ function createGondolinEditOps(vm: VM, localCwd: string): EditOperations {
 
 function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {
   return {
-    // The host environment passed by pi is intentionally not forwarded: it
+    // The host environment passed by hxf is intentionally not forwarded: it
     // usually contains API keys and other credentials.  Configure secrets for
     // the guest with `httpHooks` (see docs/secrets.md) instead.
     exec: async (command, cwd, { onData, signal, timeout }) => {
@@ -161,7 +161,7 @@ function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {
   };
 }
 
-export default function (pi: ExtensionAPI) {
+export default function (hxf: ExtensionAPI) {
   const localCwd = process.cwd();
 
   const localRead = createReadTool(localCwd);
@@ -211,12 +211,12 @@ export default function (pi: ExtensionAPI) {
     return vmStarting;
   }
 
-  pi.on("session_start", async (_event, ctx) => {
+  hxf.on("session_start", async (_event, ctx) => {
     // Start eagerly so the user sees errors early (missing qemu, etc.)
     await ensureVm(ctx);
   });
 
-  pi.on("session_shutdown", async (_event, ctx) => {
+  hxf.on("session_shutdown", async (_event, ctx) => {
     if (!vm) return;
     ctx.ui.setStatus(
       "gondolin",
@@ -230,7 +230,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.registerTool({
+  hxf.registerTool({
     ...localRead,
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
@@ -241,7 +241,7 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  pi.registerTool({
+  hxf.registerTool({
     ...localWrite,
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
@@ -252,7 +252,7 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  pi.registerTool({
+  hxf.registerTool({
     ...localEdit,
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
@@ -263,7 +263,7 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  pi.registerTool({
+  hxf.registerTool({
     ...localBash,
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
@@ -275,13 +275,13 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Run user `!` commands inside the VM too
-  pi.on("user_bash", (_event, _ctx) => {
+  hxf.on("user_bash", (_event, _ctx) => {
     if (!vm) return;
     return { operations: createGondolinBashOps(vm, localCwd) };
   });
 
   // Replace the CWD line in the system prompt so the model sees /workspace
-  pi.on("before_agent_start", async (event, ctx) => {
+  hxf.on("before_agent_start", async (event, ctx) => {
     await ensureVm(ctx);
     const modified = event.systemPrompt.replace(
       `Current working directory: ${localCwd}`,

@@ -21,7 +21,7 @@ Optional experimental backend:
 - `make krun-runner` from repo root stages dependencies locally and builds the runner
   - on macOS, it also ad-hoc signs the runner with `com.apple.security.hypervisor`
   - Gondolin auto-detects this local runner for `--vmm krun`
-- `@earendil-works/gondolin` publishes platform-specific optional runner packages for supported targets (`darwin-arm64`, `linux-x64`)
+- `@netrodev/gondolin` publishes platform-specific optional runner packages for supported targets (`darwin-arm64`, `linux-x64`)
 - krun boot assets are provided by image manifests (`assets.krunKernel` / `assets.krunInitrd`) produced by `gondolin build` and published image releases
 - `gondolin bash --vmm krun` selects the backend per-command
 - `GONDOLIN_VMM=krun` still works as a global default
@@ -49,29 +49,29 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 ## Installation
 
 ```bash
-npm install @earendil-works/gondolin
+npm install @netrodev/gondolin
 ```
 
 ## Quick start (CLI)
 
 ```bash
-npx @earendil-works/gondolin bash
+npx @netrodev/gondolin bash
 ```
 
 You can also discover and re-attach to running VMs from another terminal:
 
 ```bash
 # List running sessions
-npx @earendil-works/gondolin list
+npx @netrodev/gondolin list
 
 # Attach a second shell to a running VM by UUID/prefix
-npx @earendil-works/gondolin attach <session-id>
+npx @netrodev/gondolin attach <session-id>
 
 # Snapshot a running VM session (stops that session)
-npx @earendil-works/gondolin snapshot <session-id>
+npx @netrodev/gondolin snapshot <session-id>
 
 # Resume from snapshot id/path
-npx @earendil-works/gondolin bash --resume <snapshot-id-or-path>
+npx @netrodev/gondolin bash --resume <snapshot-id-or-path>
 ```
 
 Guest images (~200MB) are automatically resolved on first run via
@@ -82,7 +82,7 @@ If no explicit image is provided, Gondolin uses `GONDOLIN_DEFAULT_IMAGE`
 ## Hello world
 
 ```ts
-import { VM, createHttpHooks, MemoryProvider } from "@earendil-works/gondolin";
+import { VM, createHttpHooks, MemoryProvider } from "@netrodev/gondolin";
 
 const { httpHooks, env } = createHttpHooks({
   allowedHosts: ["api.github.com"],
@@ -195,6 +195,6 @@ will fail.
 
 ## License and Links
 
-- [Documentation](https://earendil-works.github.io/gondolin/)
-- [Issue Tracker](https://github.com/earendil-works/gondolin/issues)
-- License: [Apache-2.0](https://github.com/earendil-works/gondolin/blob/main/LICENSE)
+- [Documentation](https://NetroIndonesia.github.io/gondolin/)
+- [Issue Tracker](https://github.com/NetroIndonesia/gondolin/issues)
+- License: [Apache-2.0](https://github.com/NetroIndonesia/gondolin/blob/main/LICENSE)

@@ -54,7 +54,7 @@ jobs:
             ### NPM Packages
 
             ```bash
-            npm install @earendil-works/gondolin@${{ steps.npm_version.outputs.version }}
+            npm install @netrodev/gondolin@${{ steps.npm_version.outputs.version }}
             ```
 
             Platform runner packages are published as optional dependencies for supported krun targets.
@@ -92,10 +92,10 @@ jobs:
         include:
           - runner: ubuntu-latest
             package_dir: packages/gondolin-krun-runner-linux-x64
-            package_name: '@earendil-works/gondolin-krun-runner-linux-x64'
+            package_name: '@netrodev/gondolin-krun-runner-linux-x64'
           - runner: macos-14
             package_dir: packages/gondolin-krun-runner-darwin-arm64
-            package_name: '@earendil-works/gondolin-krun-runner-darwin-arm64'
+            package_name: '@netrodev/gondolin-krun-runner-darwin-arm64'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -220,7 +220,7 @@ jobs:
           node -e 'const pkg = require("./host/package.json"); const deps = pkg.optionalDependencies || {}; for (const [name, version] of Object.entries(deps)) { if (version !== process.argv[1]) { console.error(`❌ ${name} version ${version} does not match tag version ${process.argv[1]}`); process.exit(1); } } console.log("✅ Runner optional dependency versions match tag");' "$TAG_VERSION"
 
       - name: Build package artifacts
-        run: pnpm --filter @earendil-works/gondolin run build
+        run: pnpm --filter @netrodev/gondolin run build
 
       - name: Verify packaged CLI runtime
         run: node host/dist/bin/gondolin.js --help >/dev/null

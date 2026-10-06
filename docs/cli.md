@@ -15,13 +15,13 @@ Gondolin ships with a small command line interface (CLI) that lets you:
 If you don't want to install anything globally, use `npx`:
 
 ```bash
-npx @earendil-works/gondolin bash
+npx @netrodev/gondolin bash
 ```
 
 If you install the package, the `gondolin` binary becomes available:
 
 ```bash
-npm install -g @earendil-works/gondolin
+npm install -g @netrodev/gondolin
 gondolin bash
 ```
 
@@ -539,7 +539,7 @@ Image selectors accepted by `--image` and `sandbox.imagePath` strings:
 
 - `GONDOLIN_IMAGE_REGISTRY_URL`
     - Override builtin image registry JSON URL
-    - Default: `https://raw.githubusercontent.com/earendil-works/gondolin/main/builtin-image-registry.json`
+    - Default: `https://raw.githubusercontent.com/NetroIndonesia/gondolin/main/builtin-image-registry.json`
 
 - `GONDOLIN_CHECKPOINT_DIR`
     - Override checkpoint directory used by `gondolin snapshot` / `gondolin bash --resume`

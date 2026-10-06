@@ -14,7 +14,7 @@ more).
 Minimal example:
 
 ```ts
-import { VM, RealFSProvider, MemoryProvider } from "@earendil-works/gondolin";
+import { VM, RealFSProvider, MemoryProvider } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   vfs: {
@@ -61,7 +61,7 @@ import {
   hasGuestAssets,
   ensureGuestAssets,
   getAssetDirectory,
-} from "@earendil-works/gondolin";
+} from "@netrodev/gondolin";
 
 console.log("Assets available:", hasGuestAssets());
 console.log("Asset directory:", getAssetDirectory());
@@ -77,7 +77,7 @@ Use custom assets programmatically by pointing `sandbox.imagePath` at the
 asset directory:
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   sandbox: {
@@ -184,7 +184,7 @@ See also: [Snapshots](./snapshots.md).
 ```ts
 import path from "node:path";
 
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const base = await VM.create();
 

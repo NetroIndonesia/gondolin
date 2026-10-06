@@ -20,7 +20,7 @@ const SANDBOX_HELPER_REGISTRY_SCHEMA = 1 as const;
 const SANDBOX_HELPER_MANIFEST_SCHEMA = 1 as const;
 const SANDBOX_HELPER_KIND = "gondolin-sandbox-helpers" as const;
 const DEFAULT_SANDBOX_HELPER_REGISTRY_URL =
-  "https://raw.githubusercontent.com/earendil-works/gondolin/main/builtin-sandbox-helper-registry.json";
+  "https://raw.githubusercontent.com/NetroIndonesia/gondolin/main/builtin-sandbox-helper-registry.json";
 
 const HELPER_BUILD_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -236,7 +236,7 @@ function resolveHostPackageVersion(): string {
           name?: string;
           version?: string;
         };
-        if (parsed.name === "@earendil-works/gondolin" && parsed.version) {
+        if (parsed.name === "@netrodev/gondolin" && parsed.version) {
           return parsed.version;
         }
       } catch {

@@ -492,7 +492,7 @@ function resolvePackagedKrunRunnerPath(
     return null;
   }
 
-  const packageName = `@earendil-works/gondolin-krun-runner-${platform}-${arch}`;
+  const packageName = `@netrodev/gondolin-krun-runner-${platform}-${arch}`;
   const resolvePackageJson =
     deps.resolvePackageJson ??
     ((specifier: string) => require.resolve(specifier));

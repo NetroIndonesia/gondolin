@@ -1,5 +1,5 @@
 /**
- * @earendil-works/gondolin
+ * @netrodev/gondolin
  *
  * Alpine Linux sandbox for running untrusted code with controlled
  * filesystem and network access.

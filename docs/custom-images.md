@@ -349,7 +349,7 @@ GONDOLIN_GUEST_DIR=./my-assets gondolin bash
 Point `imagePath` at the asset directory (it will use `manifest.json` when present):
 
 ```typescript
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   sandbox: {

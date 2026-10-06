@@ -63,7 +63,7 @@ assets in `image/out/`.
 Boot the guest in a VM (builds assets if needed):
 
 ```sh
-npx @earendil-works/gondolin bash
+npx @netrodev/gondolin bash
 ```
 
 The host manages the full QEMU lifecycle automatically.

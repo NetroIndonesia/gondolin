@@ -1,6 +1,6 @@
 # SDK
 
-This section documents the programmatic API in `@earendil-works/gondolin`.
+This section documents the programmatic API in `@netrodev/gondolin`.
 
 To keep this easier to navigate, the SDK docs are split into focused guides:
 
@@ -11,7 +11,7 @@ To keep this easier to navigate, the SDK docs are split into focused guides:
 ## Quick Start
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create();
 

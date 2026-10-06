@@ -13,7 +13,7 @@ However, Gondolin _does_ support **disk-only checkpoints** (qcow2-backed) via
 
 See also: [Snapshots](./snapshots.md).
 
-Tracking issue: [#8](https://github.com/earendil-works/gondolin/issues/8).
+Tracking issue: [#8](https://github.com/NetroIndonesia/gondolin/issues/8).
 
 **Note:** Some guest paths are tmpfs-backed by default (eg. `/root`, `/tmp`,
 `/var/tmp`, `/var/cache`, `/var/log`). Writes under those paths are not part of

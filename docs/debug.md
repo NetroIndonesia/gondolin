@@ -33,7 +33,7 @@ export GONDOLIN_DEBUG=all
 Debug flags are also available on `sandbox.debug`:
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   sandbox: {
@@ -56,7 +56,7 @@ When any debug mode is enabled, the VM will emit debug messages to a callback:
 - You can disable debug printing entirely by passing `debugLog: null`
 
 ```ts
-import { VM, type DebugComponent } from "@earendil-works/gondolin";
+import { VM, type DebugComponent } from "@netrodev/gondolin";
 
 const logs: Array<{ component: DebugComponent; message: string }> = [];
 

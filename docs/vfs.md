@@ -25,7 +25,7 @@ A VFS setup has three layers:
 In the SDK you configure this via `VM.create({ vfs: { ... } })`:
 
 ```ts
-import { VM, MemoryProvider } from "@earendil-works/gondolin";
+import { VM, MemoryProvider } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   vfs: {
@@ -76,7 +76,7 @@ Practical consequences:
 
 ## Built-In Providers
 
-The SDK exports several providers from `@earendil-works/gondolin`.
+The SDK exports several providers from `@netrodev/gondolin`.
 
 ### Memory Provider
 
@@ -107,7 +107,7 @@ Example:
 
 ```ts
 import path from "node:path";
-import { VM, RealFSProvider } from "@earendil-works/gondolin";
+import { VM, RealFSProvider } from "@netrodev/gondolin";
 
 const repoDir = path.resolve(".");
 
@@ -133,7 +133,7 @@ Example:
 
 ```ts
 import path from "node:path";
-import { VM, RealFSProvider, ReadonlyProvider } from "@earendil-works/gondolin";
+import { VM, RealFSProvider, ReadonlyProvider } from "@netrodev/gondolin";
 
 const configDir = path.resolve("./config");
 
@@ -159,7 +159,7 @@ paths.
 The shadow policy is a callback:
 
 ```ts
-import { ShadowProvider } from "@earendil-works/gondolin";
+import { ShadowProvider } from "@netrodev/gondolin";
 
 const provider = new ShadowProvider(backend, {
   shouldShadow: ({ path }) => path === "/.env" || path.startsWith("/secrets/"),
@@ -191,7 +191,7 @@ import {
   RealFSProvider,
   ShadowProvider,
   createShadowPathPredicate,
-} from "@earendil-works/gondolin";
+} from "@netrodev/gondolin";
 
 const repoDir = path.resolve(".");
 
@@ -233,7 +233,7 @@ import {
   RealFSProvider,
   ShadowProvider,
   createShadowPathPredicate,
-} from "@earendil-works/gondolin";
+} from "@netrodev/gondolin";
 
 const repoDir = path.resolve(".");
 
@@ -278,7 +278,7 @@ Gondolin also supports basic hooks around VFS operations with `before` and `afte
 callbacks:
 
 ```ts
-import { VM, MemoryProvider } from "@earendil-works/gondolin";
+import { VM, MemoryProvider } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   vfs: {

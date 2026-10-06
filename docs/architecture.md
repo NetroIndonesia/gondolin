@@ -22,7 +22,7 @@ This gives you an overview of what they are.
 
 ### Host
 
-This is the code you import (`@earendil-works/gondolin`) and also what powers
+This is the code you import (`@netrodev/gondolin`) and also what powers
 the CLI.  It manages not just the lifecycle of the VM but it's also a crucial
 counterpart to the guest as the guest delegates a lot of functionality to the
 host.

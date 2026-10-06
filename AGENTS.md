@@ -33,7 +33,7 @@ When preparing a package release, keep all package versions in sync with the rel
 
 1. Move relevant `CHANGELOG.md` entries from `## Unreleased` into a new `## X.Y.Z` section, leaving `## Unreleased` in place at the top.
 2. Update `host/package.json` `version` to `X.Y.Z`.
-3. Update `host/package.json` `optionalDependencies` for `@earendil-works/gondolin-krun-runner-*` to `X.Y.Z`.
+3. Update `host/package.json` `optionalDependencies` for `@netrodev/gondolin-krun-runner-*` to `X.Y.Z`.
 4. Update `packages/gondolin-krun-runner-darwin-arm64/package.json` and `packages/gondolin-krun-runner-linux-x64/package.json` `version` fields to `X.Y.Z`.
 5. Run `pnpm install --lockfile-only` from the repo root to refresh `pnpm-lock.yaml`.
 6. Run at least `make check`; run `make test` when practical.

@@ -11,7 +11,7 @@ Most code should use the async factory, which also ensures guest assets are
 available:
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   // set autoStart: false if you want to configure things before boot

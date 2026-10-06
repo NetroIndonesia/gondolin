@@ -1,0 +1,48 @@
+{
+  "applied": [
+    {
+      "at": "2026-10-06T04:35:52.578Z",
+      "from": {
+        "org": "earendil-works",
+        "scope": "@earendil-works",
+        "app": "gondolin",
+        "cli": "pi",
+        "envPrefix": "GONDOLIN",
+        "company": "Earendil Inc.",
+        "website": "https://earendil.com/"
+      },
+      "to": {
+        "org": "NetroIndonesia",
+        "scope": "@netrodev",
+        "app": "gondolin",
+        "cli": "hxf",
+        "envPrefix": "GONDOLIN",
+        "company": "HowToFix",
+        "website": "https://howtofix.id"
+      },
+      "filesChanged": 46
+    },
+    {
+      "at": "2026-10-06T04:36:21.698Z",
+      "from": {
+        "org": "earendil-works",
+        "scope": "@earendil-works",
+        "app": "gondolin",
+        "cli": "pi",
+        "envPrefix": "GONDOLIN",
+        "company": "Earendil Inc.",
+        "website": "https://earendil.com/"
+      },
+      "to": {
+        "org": "NetroIndonesia",
+        "scope": "@netrodev",
+        "app": "gondolin",
+        "cli": "hxf",
+        "envPrefix": "GONDOLIN",
+        "company": "HowToFix",
+        "website": "https://howtofix.id"
+      },
+      "filesChanged": 2
+    }
+  ]
+}

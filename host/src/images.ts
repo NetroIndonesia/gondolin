@@ -30,7 +30,7 @@ export { getImageStoreDirectory } from "./image-ref.ts";
 
 const BUILTIN_IMAGE_REGISTRY_SCHEMA = 1 as const;
 const DEFAULT_IMAGE_REGISTRY_URL =
-  "https://raw.githubusercontent.com/earendil-works/gondolin/main/builtin-image-registry.json";
+  "https://raw.githubusercontent.com/NetroIndonesia/gondolin/main/builtin-image-registry.json";
 
 const DOWNLOAD_SPINNER_FRAMES = [
   "⠋",

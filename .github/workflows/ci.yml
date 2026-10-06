@@ -38,10 +38,10 @@ jobs:
         run: make -C host lint
 
       - name: Typecheck host
-        run: pnpm --filter @earendil-works/gondolin exec tsc --noEmit
+        run: pnpm --filter @netrodev/gondolin exec tsc --noEmit
 
       - name: Build package artifacts
-        run: pnpm --filter @earendil-works/gondolin run build
+        run: pnpm --filter @netrodev/gondolin run build
 
       - name: Verify packaged CLI runtime
         run: node host/dist/bin/gondolin.js --help >/dev/null
@@ -438,5 +438,5 @@ jobs:
   #             issue_number: context.issue.number,
   #             owner: context.repo.owner,
   #             repo: context.repo.repo,
-  #             body: `📦 Preview package published!\n\n\`\`\`bash\nnpm install @earendil-works/gondolin@${version}\n\`\`\`\n\nOr use the PR tag:\n\`\`\`bash\nnpm install @earendil-works/gondolin@pr-${{ github.event.pull_request.number }}\n\`\`\``
+  #             body: `📦 Preview package published!\n\n\`\`\`bash\nnpm install @netrodev/gondolin@${version}\n\`\`\`\n\nOr use the PR tag:\n\`\`\`bash\nnpm install @netrodev/gondolin@pr-${{ github.event.pull_request.number }}\n\`\`\``
   #           })

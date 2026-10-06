@@ -15,7 +15,7 @@ via `fetch` on the host side, enabling:
 - DNS rebinding protection
 
 ```ts
-import { createHttpHooks } from "@earendil-works/gondolin";
+import { createHttpHooks } from "@netrodev/gondolin";
 
 const { httpHooks, env } = createHttpHooks({
   allowedHosts: ["api.example.com", "*.github.com"],
@@ -97,7 +97,7 @@ If you need guest access to a non-HTTP protocol (for example Postgres in local
 development), you can configure explicit host mappings:
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   dns: {
@@ -147,7 +147,7 @@ will fail.
 Minimal example:
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create();
 
@@ -208,7 +208,7 @@ Header patch semantics:
 Example:
 
 ```ts
-import { IngressRequestBlockedError, VM } from "@earendil-works/gondolin";
+import { IngressRequestBlockedError, VM } from "@netrodev/gondolin";
 
 const vm = await VM.create();
 
@@ -280,7 +280,7 @@ guest arbitrary TCP access.
 import os from "node:os";
 import path from "node:path";
 
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   dns: {

@@ -4,9 +4,9 @@ Small host-side helper binary used by Gondolin's experimental `krun` backend.
 
 ## Distribution status
 
-- `@earendil-works/gondolin` declares platform-specific optional dependencies:
-  - `@earendil-works/gondolin-krun-runner-darwin-arm64`
-  - `@earendil-works/gondolin-krun-runner-linux-x64`
+- `@netrodev/gondolin` declares platform-specific optional dependencies:
+  - `@netrodev/gondolin-krun-runner-darwin-arm64`
+  - `@netrodev/gondolin-krun-runner-linux-x64`
 - In this repo, you can always build it locally with `make krun-runner`
 - Gondolin auto-detects local runner output at:
   - `host/krun-runner/zig-out/bin/gondolin-krun-runner`

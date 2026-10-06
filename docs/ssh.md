@@ -29,7 +29,7 @@ The returned `SshAccess` includes:
 ## SDK Usage
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create();
 await vm.start();
@@ -159,7 +159,7 @@ See the SSH egress flags in the CLI reference: [CLI](./cli.md).
 import os from "node:os";
 import path from "node:path";
 
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   dns: {
@@ -193,7 +193,7 @@ For git-over-SSH, you can parse the `exec` command and restrict access to a
 specific set of repos:
 
 ```ts
-import { VM, getInfoFromSshExecRequest } from "@earendil-works/gondolin";
+import { VM, getInfoFromSshExecRequest } from "@netrodev/gondolin";
 
 const allowedRepos = new Set(["my-org/repo-a.git", "my-org/repo-b.git"]);
 

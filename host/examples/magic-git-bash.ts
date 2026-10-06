@@ -248,7 +248,7 @@ async function main(): Promise<number> {
     console.log("  ls -la /git/<owner>/<repo>");
     console.log();
     console.log("Example:");
-    console.log("  ls -la /git/earendil-works/gondolin");
+    console.log("  ls -la /git/NetroIndonesia/gondolin");
     return 0;
   }
 

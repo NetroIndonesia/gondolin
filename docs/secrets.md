@@ -29,7 +29,7 @@ If a placeholder is used for a disallowed host, the request is blocked.
 ## SDK Usage
 
 ```ts
-import { VM, createHttpHooks } from "@earendil-works/gondolin";
+import { VM, createHttpHooks } from "@netrodev/gondolin";
 
 const { httpHooks, env } = createHttpHooks({
   allowedHosts: ["api.github.com"],
@@ -67,7 +67,7 @@ import {
   BASE62_ALPHABET,
   createHttpHooks,
   makePlaceholderFunc,
-} from "@earendil-works/gondolin";
+} from "@netrodev/gondolin";
 
 const { httpHooks, env } = createHttpHooks({
   secrets: {

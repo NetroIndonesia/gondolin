@@ -1,0 +1,20 @@
+{
+  "upstream": {
+    "org": "earendil-works",
+    "scope": "@earendil-works",
+    "app": "gondolin",
+    "cli": "pi",
+    "envPrefix": "GONDOLIN",
+    "company": "Earendil Inc.",
+    "website": "https://earendil.com/"
+  },
+  "brand": {
+    "org": "NetroIndonesia",
+    "scope": "@netrodev",
+    "app": "gondolin",
+    "cli": "hxf",
+    "envPrefix": "GONDOLIN",
+    "company": "HowToFix",
+    "website": "https://howtofix.id"
+  }
+}

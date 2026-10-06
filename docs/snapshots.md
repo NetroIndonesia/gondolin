@@ -40,7 +40,7 @@ Creating a snapshot stops the VM and consumes it. After calling
 ```ts
 import path from "node:path";
 
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create();
 
@@ -62,7 +62,7 @@ Resuming is cheap: the new VM uses a temporary qcow2 overlay backed by the
 snapshot qcow2 file.
 
 ```ts
-import { VmCheckpoint } from "@earendil-works/gondolin";
+import { VmCheckpoint } from "@netrodev/gondolin";
 
 const checkpoint = VmCheckpoint.load(snapshotPath);
 

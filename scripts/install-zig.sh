@@ -23,7 +23,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 VERSION="${1:-${ZIG_VERSION:-0.17.0}}"
-SOURCE_QUERY="source=github-earendil-works-gondolin"
+SOURCE_QUERY="source=github-NetroIndonesia-gondolin"
 ZSF_MINISIGN_PUBKEY="RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"
 
 DEFAULT_ZIG_MIRRORS=$(cat <<'MIRRORS'

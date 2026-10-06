@@ -109,7 +109,7 @@ There is no goal of being a full-featured recursive resolver (for example, cachi
 **SDK** (`VM.create`):
 
 ```ts
-import { VM } from "@earendil-works/gondolin";
+import { VM } from "@netrodev/gondolin";
 
 const vm = await VM.create({
   dns: {

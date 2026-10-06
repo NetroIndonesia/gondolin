@@ -177,7 +177,7 @@ krun-runner: libkrun
 	fi
 	@echo "Built runner: host/krun-runner/zig-out/bin/gondolin-krun-runner"
 	@echo "Bundled libs: host/krun-runner/zig-out/lib/libkrun*"
-	@echo "Run with: GONDOLIN_VMM=krun GONDOLIN_KRUN_RUNNER=$$(pwd)/host/krun-runner/zig-out/bin/gondolin-krun-runner npx @earendil-works/gondolin bash"
+	@echo "Run with: GONDOLIN_VMM=krun GONDOLIN_KRUN_RUNNER=$$(pwd)/host/krun-runner/zig-out/bin/gondolin-krun-runner npx @netrodev/gondolin bash"
 
 ZENSICAL_VERSION ?= 0.0.21
 

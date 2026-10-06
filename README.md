@@ -13,7 +13,7 @@ customized via JavaScript.
 ## Quick Example
 
 ```ts
-import { VM, createHttpHooks } from "@earendil-works/gondolin";
+import { VM, createHttpHooks } from "@netrodev/gondolin";
 
 const { httpHooks, env } = createHttpHooks({
   allowedHosts: ["api.github.com"],
@@ -48,23 +48,23 @@ host only for allowed destinations (including `Authorization: Basic ...` flows).
 ## CLI Quick Start
 
 ```bash
-npx @earendil-works/gondolin bash
+npx @netrodev/gondolin bash
 ```
 
 Useful session commands:
 
 ```bash
 # List running sessions
-npx @earendil-works/gondolin list
+npx @netrodev/gondolin list
 
 # Attach to an existing session
-npx @earendil-works/gondolin attach <session-id>
+npx @netrodev/gondolin attach <session-id>
 
 # Snapshot a running session (stops it)
-npx @earendil-works/gondolin snapshot <session-id>
+npx @netrodev/gondolin snapshot <session-id>
 
 # Resume from snapshot id/path
-npx @earendil-works/gondolin bash --resume <snapshot-id-or-path>
+npx @netrodev/gondolin bash --resume <snapshot-id-or-path>
 ```
 
 Guest assets (kernel/initramfs/rootfs plus optional krun boot artifacts,
@@ -84,7 +84,7 @@ Optional experimental libkrun backend setup:
 make krun-runner
 ```
 
-Published installs of `@earendil-works/gondolin` also include platform-specific
+Published installs of `@netrodev/gondolin` also include platform-specific
 optional runner packages for supported targets.
 
 This stages `libkrun` under `.cache/` (no global install) and builds the local
@@ -131,16 +131,16 @@ For custom kernels/initrds, provide an explicit `sandbox.imagePath` asset object
 
 ## Documentation
 
-- [Introduction](https://earendil-works.github.io/gondolin/)
-- [CLI](https://earendil-works.github.io/gondolin/cli/)
-- [SDK](https://earendil-works.github.io/gondolin/sdk/)
-- [Secrets Handling](https://earendil-works.github.io/gondolin/secrets/)
-- [SSH](https://earendil-works.github.io/gondolin/ssh/)
-- [Custom Images](https://earendil-works.github.io/gondolin/custom-images/)
-- [Architecture Overview](https://earendil-works.github.io/gondolin/architecture/)
+- [Introduction](https://NetroIndonesia.github.io/gondolin/)
+- [CLI](https://NetroIndonesia.github.io/gondolin/cli/)
+- [SDK](https://NetroIndonesia.github.io/gondolin/sdk/)
+- [Secrets Handling](https://NetroIndonesia.github.io/gondolin/secrets/)
+- [SSH](https://NetroIndonesia.github.io/gondolin/ssh/)
+- [Custom Images](https://NetroIndonesia.github.io/gondolin/custom-images/)
+- [Architecture Overview](https://NetroIndonesia.github.io/gondolin/architecture/)
 - [VM Backends (QEMU vs krun)](docs/backends.md)
-- [Security Design](https://earendil-works.github.io/gondolin/security/)
-- [Limitations](https://earendil-works.github.io/gondolin/limitations/)
+- [Security Design](https://NetroIndonesia.github.io/gondolin/security/)
+- [Limitations](https://NetroIndonesia.github.io/gondolin/limitations/)
 
 ## Repository Guides
 
@@ -152,8 +152,8 @@ For custom kernels/initrds, provide an explicit `sandbox.imagePath` asset object
 
 ## Pi Extension
 
-There is a [Pi + Gondolin extension](host/examples/pi-gondolin.ts) that runs
-pi tools inside a micro-VM and mounts your project at `/workspace`.
+There is a [Pi + Gondolin extension](host/examples/hxf-gondolin.ts) that runs
+hxf tools inside a micro-VM and mounts your project at `/workspace`.
 
 ## Browser Use
 
@@ -173,6 +173,6 @@ This codebase has been built with the support of coding agents.
 
 ## License and Links
 
-- [Documentation](https://earendil-works.github.io/gondolin/)
-- [Issue Tracker](https://github.com/earendil-works/gondolin/issues)
-- License: [Apache-2.0](https://github.com/earendil-works/gondolin/blob/main/LICENSE)
+- [Documentation](https://NetroIndonesia.github.io/gondolin/)
+- [Issue Tracker](https://github.com/NetroIndonesia/gondolin/issues)
+- License: [Apache-2.0](https://github.com/NetroIndonesia/gondolin/blob/main/LICENSE)

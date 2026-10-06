@@ -24,7 +24,7 @@ test("prepare-krun-runner-package materializes SONAME aliases for npm pack", () 
     fs.writeFileSync(
       path.join(packageDir, "package.json"),
       JSON.stringify({
-        name: "@earendil-works/gondolin-krun-runner-test",
+        name: "@netrodev/gondolin-krun-runner-test",
         version: "1.0.0",
         files: ["bin/", "lib/", "LICENSE"],
       }),

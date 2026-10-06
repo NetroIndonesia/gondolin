@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Resolve gondolin guest options from the installed npm package
-# (uses @earendil-works/gondolin from node resolution)
+# (uses @netrodev/gondolin from node resolution)
 
 eval "$(node -e '
-const { resolveSandboxServerOptionsAsync } = require("@earendil-works/gondolin");
+const { resolveSandboxServerOptionsAsync } = require("@netrodev/gondolin");
 (async () => {
   const o = await resolveSandboxServerOptionsAsync({ console: "stdio" });
   const platform = process.platform;

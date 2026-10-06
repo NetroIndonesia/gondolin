@@ -29,52 +29,52 @@
   "builds": {
     "35a3d95d-7127-547e-b7df-07ac50cc4443": {
       "arch": "aarch64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.1.0/gondolin-image-alpine-base-0.1.0-aarch64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.1.0/gondolin-image-alpine-base-0.1.0-aarch64.tar.gz",
       "sha256": "1be400e1cfb49ff0cee13b6f315abe47d93f3cf5789ea6ba5c59cfc6a3d6ce44"
     },
     "c2150715-0e66-5819-bbb6-c747ed3ddd87": {
       "arch": "x86_64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.1.0/gondolin-image-alpine-base-0.1.0-x86_64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.1.0/gondolin-image-alpine-base-0.1.0-x86_64.tar.gz",
       "sha256": "80fe91967a9ddf3c6de6e5f252f93410634d16aa794b425ebf3a88242f51973f"
     },
     "ad0ae835-0f53-5816-a38a-ee2116d2ac3d": {
       "arch": "aarch64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.1.1/gondolin-image-alpine-base-0.1.1-aarch64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.1.1/gondolin-image-alpine-base-0.1.1-aarch64.tar.gz",
       "sha256": "ababef5cd11754906da32de5ce821e6c76d4fa3ff50cbb0e417b57c980f92ee9"
     },
     "6248284f-cac8-51c0-b828-4f8434bcdca1": {
       "arch": "x86_64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.1.1/gondolin-image-alpine-base-0.1.1-x86_64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.1.1/gondolin-image-alpine-base-0.1.1-x86_64.tar.gz",
       "sha256": "93fa1de30305b79b58e10447c51bc818e4d12a7192e66281e611e87242c3bc4f"
     },
     "108a1836-bdf3-53f1-a4f1-7c65988152d1": {
       "arch": "aarch64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.2.0/gondolin-image-alpine-base-0.2.0-aarch64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.2.0/gondolin-image-alpine-base-0.2.0-aarch64.tar.gz",
       "sha256": "153f4994409c250ef80ee5c8ca1be194591fe9adf2ece1c2846027cbc188bdfd"
     },
     "3cd7a864-f023-5a35-9db1-39a1be5bdcca": {
       "arch": "x86_64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.2.0/gondolin-image-alpine-base-0.2.0-x86_64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.2.0/gondolin-image-alpine-base-0.2.0-x86_64.tar.gz",
       "sha256": "ee3054f1b948c481b35d3a5a4ff9eb3db67ea2e1fdb5159d869fee5ede085bab"
     },
     "4cef1b83-7c64-59f2-bdee-05126d126560": {
       "arch": "aarch64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.3.0/gondolin-image-alpine-base-0.3.0-aarch64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.3.0/gondolin-image-alpine-base-0.3.0-aarch64.tar.gz",
       "sha256": "b1021960ba918c3394c19d650c5e7e706308e329b21dd46aa5c5687a03ff72ee"
     },
     "d74c68cf-1462-53b7-ade0-b88ce41c8dcd": {
       "arch": "x86_64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.3.0/gondolin-image-alpine-base-0.3.0-x86_64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.3.0/gondolin-image-alpine-base-0.3.0-x86_64.tar.gz",
       "sha256": "9b0db2cbd1c92ea7012efc819fae97e205438d6252dfcf9db905de889541194f"
     },
     "e490f153-9700-596d-bb59-9ebf69c725dc": {
       "arch": "aarch64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.3.1/gondolin-image-alpine-base-0.3.1-aarch64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.3.1/gondolin-image-alpine-base-0.3.1-aarch64.tar.gz",
       "sha256": "9754dd53e8b23ba5b19fb9b78ab703af6abbbc38d478b92ea532c3c57d6847c7"
     },
     "39bb1ded-2995-5ce9-b1d7-b8f76cb8803b": {
       "arch": "x86_64",
-      "url": "https://github.com/earendil-works/gondolin/releases/download/image-alpine-base--0.3.1/gondolin-image-alpine-base-0.3.1-x86_64.tar.gz",
+      "url": "https://github.com/NetroIndonesia/gondolin/releases/download/image-alpine-base--0.3.1/gondolin-image-alpine-base-0.3.1-x86_64.tar.gz",
       "sha256": "a0bc2bde375fc73948ed8df3de147179403735928f8443b961372f23f4f99096"
     }
   }

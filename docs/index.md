@@ -20,13 +20,13 @@ to use it.
 A little appetizer:
 
 ```bash
-npx @earendil-works/gondolin bash
+npx @netrodev/gondolin bash
 ```
 
 Or programmatically:
 
 ```ts
-import { VM, createHttpHooks } from "@earendil-works/gondolin";
+import { VM, createHttpHooks } from "@netrodev/gondolin";
 
 const { httpHooks, env } = createHttpHooks({
   allowedHosts: ["api.github.com"],

@@ -16,7 +16,7 @@ import { cacheBaseDir, downloadToBuffer } from "./helpers.ts";
 const TRUFFLEHOG_REGISTRY_SCHEMA = 1 as const;
 const DEFAULT_TRUFFLEHOG_REF = "trufflehog:3.95.3";
 const DEFAULT_TRUFFLEHOG_REGISTRY_URL =
-  "https://raw.githubusercontent.com/earendil-works/gondolin/main/builtin-trufflehog-registry.json";
+  "https://raw.githubusercontent.com/NetroIndonesia/gondolin/main/builtin-trufflehog-registry.json";
 
 type SupportedPlatform =
   | "darwin-arm64"

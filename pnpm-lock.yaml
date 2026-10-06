@@ -166,7 +166,7 @@ importers:
 
   .:
     dependencies:
-      '@earendil-works/gondolin':
+      '@netrodev/gondolin':
         specifier: workspace:*
         version: link:host
     devDependencies:
