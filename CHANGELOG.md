@@ -134,7 +134,7 @@ All notable changes to Gondolin are documented here.
 ## 0.2.1
 
 - Run string exec commands via `/bin/sh -lc` for predictable shell behavior
-- Add example Pi + Gondolin sandbox extension
+- Add example Gondolin sandbox extension
 - Documentation and CI improvements
 
 ## 0.2.0

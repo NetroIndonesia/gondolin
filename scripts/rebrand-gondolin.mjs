@@ -123,9 +123,18 @@ const RULES = [
     new RegExp(`\\b${escapeRe("Earendil")}\\b`, "g"),
     brand.company,
   ],
+  // Case variants. The config holds the CLI name in lowercase ("pi") but the
+  // prose writes the capitalised form in headings and changelog entries
+  // ("Pi Extension"). A case-sensitive rule leaves every one of those behind,
+  // so the vendor name survives in the most visible place there is.
   [
     "upstream CLI brand in prose and paths",
     new RegExp(`\\b${escapeRe(upstream.cli)}\\b`, "g"),
+    brand.cli,
+  ],
+  [
+    "upstream CLI brand, capitalised",
+    new RegExp(`\\b${escapeRe(upstream.cli[0].toUpperCase() + upstream.cli.slice(1))}\\b`, "g"),
     brand.cli,
   ],
   [

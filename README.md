@@ -150,9 +150,9 @@ For custom kernels/initrds, provide an explicit `sandbox.imagePath` asset object
 - [Examples](host/examples): end-to-end integration examples
 
 
-## Pi Extension
+## Sandbox Extension
 
-There is a [Pi + Gondolin extension](host/examples/hxf-gondolin.ts) that runs
+There is a [Gondolin sandbox extension](host/examples/hxf-gondolin.ts) that runs
 hxf tools inside a micro-VM and mounts your project at `/workspace`.
 
 ## Browser Use

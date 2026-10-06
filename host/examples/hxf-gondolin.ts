@@ -1,5 +1,5 @@
 /**
- * Pi + Gondolin Sandbox Example (hxf extension)
+ * Gondolin Sandbox Example (hxf extension)
  *
  * This extension overrides hxf's built-in `read`/`write`/`edit`/`bash` tools so
  * they execute inside a Gondolin micro-VM instead of on the host.
