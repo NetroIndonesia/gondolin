@@ -161,10 +161,13 @@ jobs:
           npm install "$PKG_PATH" >/dev/null
           ./node_modules/.bin/gondolin-krun-runner --version
 
-      - name: Publish runner package (with provenance)
+      - name: Publish runner package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "false"
         run: |
           cd "${{ matrix.package_dir }}"
-          npm publish --access public --provenance
+          npm publish --access public --provenance=false
 
   publish-npm:
     name: Publish main package to NPM
@@ -225,7 +228,10 @@ jobs:
       - name: Verify packaged CLI runtime
         run: node host/dist/bin/gondolin.js --help >/dev/null
 
-      - name: Publish to NPM (with provenance)
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "false"
         run: |
           cd host
-          npm publish --access public --provenance
+          npm publish --access public --provenance=false
