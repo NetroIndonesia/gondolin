@@ -204,6 +204,13 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+    optionalDependencies:
+      '@netrodev/gondolin-krun-runner-darwin-arm64':
+        specifier: 0.13.0
+        version: 0.13.0
+      '@netrodev/gondolin-krun-runner-linux-x64':
+        specifier: 0.13.0
+        version: 0.13.0
 
   packages/gondolin-krun-runner-darwin-arm64: {}
 
@@ -271,6 +278,18 @@ packages:
   '@cto.af/wtf8@0.0.5':
     resolution: {integrity: sha512-LfUFi+Vv4eDzj+XAtR89e3wwjXA/NZjUSwU5NhwbBrLecxPaBYFy3exCuc1j+D4UZeOVdqlsl8G7LmOt18V0tg==}
     engines: {node: '>=20'}
+
+  '@netrodev/gondolin-krun-runner-darwin-arm64@0.13.0':
+    resolution: {integrity: sha512-D6jyLJxCIC/cZxZH9UDzgtdRKqlAj0SMRJmvabh9dfMPZPRL1FTodUNc0IwV+94Aetd6LWzzXnx71WEhsoFvyw==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@netrodev/gondolin-krun-runner-linux-x64@0.13.0':
+    resolution: {integrity: sha512-S98sS9Zt40toyRXqUoosfKeCSayfJO6vnddAMSJrNzVXcUr+dnKzQcde+XfoPYhhChyYJocGHgKvTfXAojv0Ww==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
 
   '@types/node-forge@1.3.14':
     resolution: {integrity: sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw==}
@@ -495,6 +514,12 @@ snapshots:
     optional: true
 
   '@cto.af/wtf8@0.0.5': {}
+
+  '@netrodev/gondolin-krun-runner-darwin-arm64@0.13.0':
+    optional: true
+
+  '@netrodev/gondolin-krun-runner-linux-x64@0.13.0':
+    optional: true
 
   '@types/node-forge@1.3.14':
     dependencies:
