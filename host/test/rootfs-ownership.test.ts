@@ -84,12 +84,19 @@ test("rootfs image: applies OCI ownership metadata with debugfs for non-root bui
   );
 
   const st = fs.lstatSync(path.join(rootfsDir, "etc", "same-owner"));
+  // The debugfs step only rewrites entries whose target uid/gid differs from
+  // the file's real owner, so pick targets that always differ — otherwise the
+  // test silently becomes a no-op when the suite runs as root (root-owned tmp
+  // files already match uid 0 entries).
+  const testFile = fs.lstatSync(path.join(rootfsDir, "etc", "test"));
+  const targetUid = testFile.uid === 0 ? 12345 : 0;
+  const targetGid = testFile.gid === 0 ? 12345 : 0;
 
   const ownershipEntries: RootfsOwnershipEntry[] = [
-    { path: "etc/test", uid: 0, gid: 0 },
-    { path: "etc/test space", uid: 0, gid: 0 },
+    { path: "etc/test", uid: targetUid, gid: targetGid },
+    { path: "etc/test space", uid: targetUid, gid: targetGid },
     { path: "etc/same-owner", uid: st.uid, gid: st.gid },
-    { path: "etc/does-not-exist", uid: 0, gid: 0 },
+    { path: "etc/does-not-exist", uid: targetUid, gid: targetGid },
   ];
 
   const oldGetuid = process.getuid;
@@ -115,10 +122,22 @@ test("rootfs image: applies OCI ownership metadata with debugfs for non-root bui
     assert.equal(fs.existsSync(debugfsLog), true);
 
     const debugfsCommands = fs.readFileSync(debugfsLog, "utf8");
-    assert.match(debugfsCommands, /sif "\/etc\/test" uid 0/);
-    assert.match(debugfsCommands, /sif "\/etc\/test" gid 0/);
-    assert.match(debugfsCommands, /sif "\/etc\/test space" uid 0/);
-    assert.match(debugfsCommands, /sif "\/etc\/test space" gid 0/);
+    assert.match(
+      debugfsCommands,
+      new RegExp(`sif "/etc/test" uid ${targetUid}`),
+    );
+    assert.match(
+      debugfsCommands,
+      new RegExp(`sif "/etc/test" gid ${targetGid}`),
+    );
+    assert.match(
+      debugfsCommands,
+      new RegExp(`sif "/etc/test space" uid ${targetUid}`),
+    );
+    assert.match(
+      debugfsCommands,
+      new RegExp(`sif "/etc/test space" gid ${targetGid}`),
+    );
     assert.equal(debugfsCommands.includes("same-owner"), false);
     assert.equal(debugfsCommands.includes("does-not-exist"), false);
   } finally {
@@ -165,8 +184,14 @@ test("rootfs image: ignores large debugfs stdout while applying OCI ownership me
     ].join("\n"),
   );
 
+  // When the suite runs as root, tmp files are already uid 0, so target a
+  // differing uid to keep the debugfs step from being skipped as a no-op.
+  const testFile = fs.lstatSync(path.join(rootfsDir, "etc", "test"));
+  const targetUid = testFile.uid === 0 ? 12345 : 0;
+  const targetGid = testFile.gid === 0 ? 12345 : 0;
+
   const ownershipEntries: RootfsOwnershipEntry[] = [
-    { path: "etc/test", uid: 0, gid: 0 },
+    { path: "etc/test", uid: targetUid, gid: targetGid },
   ];
 
   const oldGetuid = process.getuid;
@@ -187,8 +212,14 @@ test("rootfs image: ignores large debugfs stdout while applying OCI ownership me
 
     assert.equal(fs.existsSync(imagePath), true);
     const debugfsCommands = fs.readFileSync(debugfsLog, "utf8");
-    assert.match(debugfsCommands, /sif "\/etc\/test" uid 0/);
-    assert.match(debugfsCommands, /sif "\/etc\/test" gid 0/);
+    assert.match(
+      debugfsCommands,
+      new RegExp(`sif "/etc/test" uid ${targetUid}`),
+    );
+    assert.match(
+      debugfsCommands,
+      new RegExp(`sif "/etc/test" gid ${targetGid}`),
+    );
   } finally {
     process.getuid = oldGetuid;
     if (oldDebugfsLog === undefined) {
@@ -227,8 +258,14 @@ test("rootfs image: includes debugfs stderr when ownership metadata fails", () =
     ].join("\n"),
   );
 
+  // When the suite runs as root, tmp files are already uid 0, so target a
+  // differing uid to keep the debugfs step from being skipped as a no-op.
+  const testFile = fs.lstatSync(path.join(rootfsDir, "etc", "test"));
+  const targetUid = testFile.uid === 0 ? 12345 : 0;
+  const targetGid = testFile.gid === 0 ? 12345 : 0;
+
   const ownershipEntries: RootfsOwnershipEntry[] = [
-    { path: "etc/test", uid: 0, gid: 0 },
+    { path: "etc/test", uid: targetUid, gid: targetGid },
   ];
 
   const oldGetuid = process.getuid;
