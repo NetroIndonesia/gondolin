@@ -111,6 +111,39 @@ jobs:
           path: ${{ matrix.artifact }}.tar.gz
           retention-days: 7
 
+  fuzz:
+    name: Fuzz smoke (host + guest build)
+    needs: [check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/setup@v3
+        with:
+          install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install Zig
+        run: scripts/install-zig.sh 0.17.0
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Preflight QEMU (informational)
+        run: ./scripts/preflight-qemu.sh
+
+      - name: Host fuzz smoke (bounded, fixed seed)
+        timeout-minutes: 10
+        run: make fuzz-ci FUZZ_ITERS=20000 FUZZ_SEED=1
+
+      - name: Build guest fuzzers (compile check)
+        timeout-minutes: 10
+        run: make fuzz
+
   container-build:
     name: Container Build (smoke)
     needs: [check]
