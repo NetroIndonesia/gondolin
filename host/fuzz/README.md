@@ -12,6 +12,7 @@ From the repo root:
 ```bash
 make fuzz-host                           # default target (virtio), runs forever
 make fuzz-host HOST_FUZZ_TARGET=dns      # a single target, runs forever
+make fuzz-ci                             # bounded smoke run: all targets, fixed seed (used by CI)
 ```
 
 Or directly:
@@ -24,6 +25,9 @@ pnpm run fuzz -- net
 
 # bounded run
 pnpm run fuzz -- virtio --iters 50000
+
+# bounded run of every target (what CI runs)
+pnpm run fuzz -- --all --iters 20000 --seed 1
 ```
 
 ## Repro

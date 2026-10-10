@@ -1,4 +1,4 @@
-.PHONY: help lint typecheck build test check format fix clean hooks docs serve-docs fuzz fuzz-host fuzz-cbor fuzz-protocol fuzz-sandbox fuzz-cbor-last fuzz-protocol-last fuzz-sandbox-last fuzz-cbor-repro fuzz-protocol-repro fuzz-sandbox-repro fuzz-clean libkrun krun-runner
+.PHONY: help lint typecheck build test check format fix clean hooks docs serve-docs fuzz fuzz-host fuzz-ci fuzz-cbor fuzz-protocol fuzz-sandbox fuzz-cbor-last fuzz-protocol-last fuzz-sandbox-last fuzz-cbor-repro fuzz-protocol-repro fuzz-sandbox-repro fuzz-clean libkrun krun-runner
 
 RUN_PARALLEL ?= ./scripts/run-parallel
 
@@ -45,6 +45,7 @@ help:
 	@echo "  make clean       - Clean build artifacts"
 	@echo "  make fuzz        - Build guest fuzzers (protocol + cbor + sandbox)"
 	@echo "  make fuzz-host   - Run host-side fuzzers (TypeScript)"
+	@echo "  make fuzz-ci     - Bounded fuzz smoke run (all host targets, fixed seed)"
 	@echo "  make fuzz-cbor   - Run CBOR fuzzer in a VM"
 	@echo "  make fuzz-protocol - Run protocol fuzzer in a VM"
 	@echo "  make fuzz-sandbox - Run sandbox behavior fuzzer in a VM"
@@ -84,6 +85,7 @@ check:
 		"host:typecheck" "$(MAKE) -C host typecheck"
 
 test:
+	@./scripts/preflight-qemu.sh
 	@$(MAKE) -C guest test
 	@$(MAKE) -C host test
 
@@ -196,13 +198,22 @@ HOST_FUZZ_TARGET ?= virtio
 fuzz-host:
 	@$(MAKE) -C host fuzz TARGET="$(HOST_FUZZ_TARGET)"
 
+# Bounded fuzz smoke run (all host targets, fixed seed) for CI
+FUZZ_ITERS ?= 20000
+FUZZ_SEED ?= 1
+fuzz-ci:
+	@$(MAKE) -C host fuzz-ci ITERS="$(FUZZ_ITERS)" SEED="$(FUZZ_SEED)"
+
 fuzz-cbor:
+	@./scripts/preflight-qemu.sh
 	@$(MAKE) -C guest fuzz-cbor
 
 fuzz-protocol:
+	@./scripts/preflight-qemu.sh
 	@$(MAKE) -C guest fuzz-protocol
 
 fuzz-sandbox:
+	@./scripts/preflight-qemu.sh
 	@$(MAKE) -C guest fuzz-sandbox
 
 fuzz-cbor-last:
