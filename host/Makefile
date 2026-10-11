@@ -1,4 +1,4 @@
-.PHONY: build typecheck lint test format clean fuzz
+.PHONY: build typecheck lint test format clean fuzz fuzz-ci
 
 PNPM ?= pnpm
 NODE ?= node
@@ -27,6 +27,12 @@ test:
 
 fuzz:
 	@$(PNPM) run fuzz -- $(TARGET)
+
+# Bounded fuzz smoke run over every target (CI)
+ITERS ?= 20000
+SEED ?= 1
+fuzz-ci:
+	@$(PNPM) run fuzz -- --all --iters $(ITERS) --seed $(SEED)
 
 clean:
 	@rm -rf dist
