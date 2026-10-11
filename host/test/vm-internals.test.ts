@@ -386,6 +386,7 @@ test("vm internals: start timeout rejects stalled guest readiness", async () => 
     autoStart: false,
     startTimeoutMs: 10,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   (vm as any).ensureVmmAvailable = () => {};
@@ -410,6 +411,7 @@ test("vm internals: start timeout also applies when ensureRunning stalls", async
     autoStart: false,
     startTimeoutMs: 10,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   (vm as any).ensureVmmAvailable = () => {};
@@ -434,6 +436,7 @@ test("vm internals: timed out startup does not run late session setup", async ()
     autoStart: false,
     startTimeoutMs: 10,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   let ensureSessionIpcCalls = 0;
@@ -466,6 +469,7 @@ test("vm internals: stale timeout cleanup does not close newer startup", async (
     autoStart: false,
     startTimeoutMs: 10,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   let staleCloseCalls = 0;
@@ -503,6 +507,7 @@ test("vm internals: startup timeout cleanup tears down without closing the vm", 
     autoStart: false,
     startTimeoutMs: 10,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   let closeInternalCalls = 0;
@@ -539,6 +544,7 @@ test("vm internals: closed vm cannot be restarted by start or exec", async () =>
   const { vm, cleanup } = makeVm({
     autoStart: false,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   let serverStarts = 0;
@@ -585,6 +591,7 @@ test("vm internals: withStartTimeout does not fast-timeout on non-finite values"
   const { vm, cleanup } = makeVm({
     autoStart: false,
     vfs: null,
+    rootfs: { mode: "readonly" },
   });
 
   try {
@@ -720,6 +727,7 @@ test("vm internals: file helpers short-circuit VFS mounts", async () => {
         "/workspace": provider,
       },
     },
+    rootfs: { mode: "readonly" },
   });
 
   try {
@@ -803,6 +811,7 @@ test("vm internals: file helpers still use VM path for non-VFS files", async () 
         "/workspace": provider,
       },
     },
+    rootfs: { mode: "readonly" },
   });
 
   try {
@@ -828,7 +837,7 @@ test("vm internals: file helpers still use VM path for non-VFS files", async () 
 });
 
 test("vm internals: pending stdin and pty resize flush after markSessionReady", async () => {
-  const { vm, cleanup } = makeVm({ vfs: null });
+  const { vm, cleanup } = makeVm({ vfs: null, rootfs: { mode: "readonly" } });
   try {
     const sent: any[] = [];
     (vm as any).connection = {
@@ -874,7 +883,11 @@ test("vm internals: pending stdin and pty resize flush after markSessionReady", 
 });
 
 test("vm internals: ensureRunning sends boot and resolves once running", async () => {
-  const { vm, cleanup } = makeVm({ autoStart: true, vfs: null });
+  const { vm, cleanup } = makeVm({
+    autoStart: true,
+    vfs: null,
+    rootfs: { mode: "readonly" },
+  });
 
   try {
     const sent: any[] = [];
@@ -923,7 +936,11 @@ test("vm internals: ensureRunning sends boot and resolves once running", async (
 });
 
 test("vm internals: ensureRunning throws when stopped and autoStart disabled", async () => {
-  const { vm, cleanup } = makeVm({ autoStart: false, vfs: null });
+  const { vm, cleanup } = makeVm({
+    autoStart: false,
+    vfs: null,
+    rootfs: { mode: "readonly" },
+  });
   try {
     const sent: any[] = [];
     const fakeConn = {
@@ -955,7 +972,7 @@ test("vm internals: ensureRunning throws when stopped and autoStart disabled", a
 });
 
 test("vm internals: handleDisconnect rejects pending state waiters and sessions", async () => {
-  const { vm, cleanup } = makeVm({ vfs: null });
+  const { vm, cleanup } = makeVm({ vfs: null, rootfs: { mode: "readonly" } });
   try {
     const waiter = (vm as any).waitForState("running");
 
