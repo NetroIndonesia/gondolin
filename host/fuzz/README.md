@@ -23,6 +23,10 @@ pnpm run fuzz -- dns
 pnpm run fuzz -- virtio
 pnpm run fuzz -- net
 
+# host-internal parsers: HTTP hook conversion and VFS mount routing
+pnpm run fuzz -- http-conversion
+pnpm run fuzz -- mounts
+
 # bounded run
 pnpm run fuzz -- virtio --iters 50000
 

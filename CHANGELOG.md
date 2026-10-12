@@ -4,43 +4,44 @@ All notable changes to Gondolin are documented here.
 
 ## Unreleased
 
-- Fix `chmod` from the guest being silently ignored on VFS mounts (`MemoryProvider`, `RealFSProvider`, `ShadowProvider`, ...): sandboxfs now forwards mode changes to the host and providers gain an optional `chmod()` method.  `RealFSProvider` never applies setuid/setgid bits to host files.  Requires a guest image built with this version.  #115
-- Fix a TOCTOU race in VFS path validation: fs-rpc requests are now processed strictly in order, so a guest pipelining requests can no longer swap a directory between `RealFSProvider`'s path check and the host syscall to reach files outside the mount root.  #143
+- Fix `webRequestToInternalHttpRequest` rejecting bodyless `GET`/`HEAD` requests with 400 when `allowBody` is set: the buffered-hook branch treated every value carrying an `arrayBuffer()` method (i.e. every `Request`) as having a body to reject. Found by the new `http-conversion` fuzz target.
+- Fix `chmod` from the guest being silently ignored on VFS mounts (`MemoryProvider`, `RealFSProvider`, `ShadowProvider`, ...): sandboxfs now forwards mode changes to the host and providers gain an optional `chmod()` method. `RealFSProvider` never applies setuid/setgid bits to host files. Requires a guest image built with this version. #115
+- Fix a TOCTOU race in VFS path validation: fs-rpc requests are now processed strictly in order, so a guest pipelining requests can no longer swap a directory between `RealFSProvider`'s path check and the host syscall to reach files outside the mount root. #143
 
 ## 0.13.0
 
-- Add a `tmpfs` VM option to configure the scratch tmpfs mounts created by the guest `/init` (`/root`, `/tmp`, `/var/tmp`, `/var/cache`, `/var/log` by default), including per-mount `size` and `mode`.  `tmpfs: {}` keeps those paths on the root disk so cache-heavy workloads no longer consume guest RAM.  Requires a guest image built with this version.  #133
-- The guest `/init` no longer exports `XDG_CACHE_HOME`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `UV_CACHE_DIR` pointing into `/tmp`; tools now use their defaults under `$HOME`.  Set them via the VM `env` option if needed.  #133
-- Fix many VFS mounts silently dropping the MITM CA (and other late bind mounts) because the bind list overflowed the 2048 byte kernel command line.  `sandboxfs` now fetches the bind list from the host over its RPC channel, which also makes mount paths with spaces or commas work.  The command line only carries as many binds as fit (gondolin's own first) for older guest images.  #150
-- Block guest HTTP/TLS egress to loopback, private, link-local and other internal address ranges by default, even when no `httpHooks` (or no `httpHooks.isIpAllowed`) are configured.  Previously VMs created without hooks could reach host-local services and cloud metadata endpoints.  Provide a custom `isIpAllowed` to opt out.
+- Add a `tmpfs` VM option to configure the scratch tmpfs mounts created by the guest `/init` (`/root`, `/tmp`, `/var/tmp`, `/var/cache`, `/var/log` by default), including per-mount `size` and `mode`. `tmpfs: {}` keeps those paths on the root disk so cache-heavy workloads no longer consume guest RAM. Requires a guest image built with this version. #133
+- The guest `/init` no longer exports `XDG_CACHE_HOME`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `UV_CACHE_DIR` pointing into `/tmp`; tools now use their defaults under `$HOME`. Set them via the VM `env` option if needed. #133
+- Fix many VFS mounts silently dropping the MITM CA (and other late bind mounts) because the bind list overflowed the 2048 byte kernel command line. `sandboxfs` now fetches the bind list from the host over its RPC channel, which also makes mount paths with spaces or commas work. The command line only carries as many binds as fit (gondolin's own first) for older guest images. #150
+- Block guest HTTP/TLS egress to loopback, private, link-local and other internal address ranges by default, even when no `httpHooks` (or no `httpHooks.isIpAllowed`) are configured. Previously VMs created without hooks could reach host-local services and cloud metadata endpoints. Provide a custom `isIpAllowed` to opt out.
 - Close idle upstream UDP sockets in `trusted` and `open` DNS modes and cap the number of concurrently open ones, fixing a host file descriptor leak in long-running VMs.
 - Lower the minimum supported Node.js version to 22.19.0 (previously 23.6.0).
 - Drop the generated `dist/src/index.cjs` shim; CommonJS consumers now load the ESM entrypoint directly through Node's `require(esm)` support.
-- Upgrade guest and krun runner builds to Zig 0.17.0.  The krun runner now uses hand-written libkrun bindings instead of `@cImport`.
+- Upgrade guest and krun runner builds to Zig 0.17.0. The krun runner now uses hand-written libkrun bindings instead of `@cImport`.
 - Fix cached sandbox helpers being rejected with a `gondolinVersion mismatch` after upgrading Gondolin when the new release reuses the same helper build.
 - `VM.close()` is now terminal: `start()`, `exec()` and friends on a closed VM reject with `vm is closed` instead of silently restarting the sandbox server and leaking its sockets.
 - `GONDOLIN_BUILD_SANDBOX_HELPERS_FROM_SOURCE=1` now always builds helpers from local Zig sources as documented, instead of only acting as a fallback when published helpers cannot be resolved.
-- Fix unhandled promise rejections when `writeGuestFile()` or `deleteGuestFile()` fail before completion, for example when aborted.  #136
-- Fix HTTP 502 responses for guest requests with buffered bodies (e.g. `POST`, `git clone` over HTTP) on Node.js >= 24.17 caused by a duplicated `Content-Length` header.  #135
-- Add `e2fsprogs-extra` to the default `alpine-base` build config so `rootfs.size` / `--rootfs-size` can find `resize2fs` in the guest.  #140
-- Take the guest kernel image from the kernel package installed during `gondolin build` instead of downloading it separately, so the kernel and its modules can no longer drift apart when build caches are stale.  #144
-- Fix `gondolin exec --sock`, which still spoke the raw virtio protocol, to use the session IPC protocol with output flow control.  `--sock` now also accepts a session id.  #139
-- Add a Browser Use example that drives Chromium running inside a micro-VM through the ingress gateway.  #145
-- Add `gondolin image rm` (by ref, build id, `--untagged` or `--all`) and `gondolin build cache info|update|rm` for managing local images and the Alpine build cache.  `image ls` now lists untagged images.  #146
+- Fix unhandled promise rejections when `writeGuestFile()` or `deleteGuestFile()` fail before completion, for example when aborted. #136
+- Fix HTTP 502 responses for guest requests with buffered bodies (e.g. `POST`, `git clone` over HTTP) on Node.js >= 24.17 caused by a duplicated `Content-Length` header. #135
+- Add `e2fsprogs-extra` to the default `alpine-base` build config so `rootfs.size` / `--rootfs-size` can find `resize2fs` in the guest. #140
+- Take the guest kernel image from the kernel package installed during `gondolin build` instead of downloading it separately, so the kernel and its modules can no longer drift apart when build caches are stale. #144
+- Fix `gondolin exec --sock`, which still spoke the raw virtio protocol, to use the session IPC protocol with output flow control. `--sock` now also accepts a session id. #139
+- Add a Browser Use example that drives Chromium running inside a micro-VM through the ingress gateway. #145
+- Add `gondolin image rm` (by ref, build id, `--untagged` or `--all`) and `gondolin build cache info|update|rm` for managing local images and the Alpine build cache. `image ls` now lists untagged images. #146
 - Automatically refresh cached Alpine `APKINDEX` files during `gondolin build` when a package download returns 404 because the cached index is stale.
-- Fix TCP sequence and acknowledgement numbers not wrapping at 2^32 in the QEMU network stack, which crashed the host process with `ERR_OUT_OF_RANGE` for connections with a high guest ISN or after ~4 GiB on one connection.  #119 #138
-- Re-sync the guest wall clock from the host after QEMU resumes from an idle pause, fixing `certificate is not yet valid` errors for MITM TLS and other clock-dependent tooling in long-lived VMs.  #148
-- Fix stale trailing bytes when guest processes shrink or `ftruncate()` files on `MemoryProvider` mounts: open `MemoryFileHandle`s now follow truncates done through the path or other handles.  sandboxfs also advertises `FUSE_ATOMIC_O_TRUNC` so `O_TRUNC` is applied on open.  #149
-- Generated HTTP-hook secret placeholders now default to a shared random marker plus the secret name (`<marker>.<secret_name>`) so secrets can be resolved by identifier.  Set `secretPlaceholderMode: "unique"` to keep fully random per-secret placeholders.  #122 #123
-- `--host-secret NAME` no longer requires explicit hosts: Gondolin uses a managed TruffleHog helper to suggest hosts for the secret and asks for confirmation.  Inspect the helper with `gondolin tools trufflehog`.  #120
+- Fix TCP sequence and acknowledgement numbers not wrapping at 2^32 in the QEMU network stack, which crashed the host process with `ERR_OUT_OF_RANGE` for connections with a high guest ISN or after ~4 GiB on one connection. #119 #138
+- Re-sync the guest wall clock from the host after QEMU resumes from an idle pause, fixing `certificate is not yet valid` errors for MITM TLS and other clock-dependent tooling in long-lived VMs. #148
+- Fix stale trailing bytes when guest processes shrink or `ftruncate()` files on `MemoryProvider` mounts: open `MemoryFileHandle`s now follow truncates done through the path or other handles. sandboxfs also advertises `FUSE_ATOMIC_O_TRUNC` so `O_TRUNC` is applied on open. #149
+- Generated HTTP-hook secret placeholders now default to a shared random marker plus the secret name (`<marker>.<secret_name>`) so secrets can be resolved by identifier. Set `secretPlaceholderMode: "unique"` to keep fully random per-secret placeholders. #122 #123
+- `--host-secret NAME` no longer requires explicit hosts: Gondolin uses a managed TruffleHog helper to suggest hosts for the secret and asks for confirmation. Inspect the helper with `gondolin tools trufflehog`. #120
 - Fix HTTPS egress when the host runs on Bun: select MITM certificates by pre-parsing the guest ClientHello SNI (Bun does not call `SNICallback`), and end MITM TLS sessions only after the full response reached the guest flow. #147 #73
-- Fix `gondolin build` producing rootfs images that are too small when the build directory is on a compressing filesystem (zfs, btrfs): the size estimate now uses apparent file sizes instead of `du`.  #142
-- Fix `ShadowProvider` (`writeMode: "tmpfs"`) failing with `ENOENT` when creating a shadowed directory whose parent only exists in the backend.  #126
-- Create the standard `/dev/fd`, `/dev/stdin`, `/dev/stdout` and `/dev/stderr` symlinks in the guest so bash process substitution works (requires rebuilding images).  #118
-- Bind-mount `/dev` into the `postBuild.commands` chroot so commands can use `/dev/null` and friends.  #153
-- Fix concurrent `vm.fs` operations (e.g. parallel `writeFile()` calls) interleaving on the guest protocol and hanging forever: file operations are now strictly serialized.  #137
-- Fix krun boots failing with `InvalidGuestAddress` on x86_64 because of a 0-byte `krun-empty-initrd`: builds now emit a valid empty cpio archive and 0-byte initrds from older images are replaced at runtime.  #91
-- The `hxf-gondolin.ts` example now writes files through `vm.fs` (no more argv size limit for large files) and no longer forwards the host environment into the guest.  #130 #11
+- Fix `gondolin build` producing rootfs images that are too small when the build directory is on a compressing filesystem (zfs, btrfs): the size estimate now uses apparent file sizes instead of `du`. #142
+- Fix `ShadowProvider` (`writeMode: "tmpfs"`) failing with `ENOENT` when creating a shadowed directory whose parent only exists in the backend. #126
+- Create the standard `/dev/fd`, `/dev/stdin`, `/dev/stdout` and `/dev/stderr` symlinks in the guest so bash process substitution works (requires rebuilding images). #118
+- Bind-mount `/dev` into the `postBuild.commands` chroot so commands can use `/dev/null` and friends. #153
+- Fix concurrent `vm.fs` operations (e.g. parallel `writeFile()` calls) interleaving on the guest protocol and hanging forever: file operations are now strictly serialized. #137
+- Fix krun boots failing with `InvalidGuestAddress` on x86_64 because of a 0-byte `krun-empty-initrd`: builds now emit a valid empty cpio archive and 0-byte initrds from older images are replaced at runtime. #91
+- The `hxf-gondolin.ts` example now writes files through `vm.fs` (no more argv size limit for large files) and no longer forwards the host environment into the guest. #130 #11
 
 ## 0.12.0
 

@@ -4,6 +4,8 @@ import { virtioTarget } from "./virtio.ts";
 import { networkTarget } from "./network.ts";
 import { tarTarget } from "./tar.ts";
 import { sshExecTarget } from "./ssh-exec.ts";
+import { httpConversionTarget } from "./http-conversion.ts";
+import { mountsTarget } from "./mounts.ts";
 
 export const targets: Record<string, FuzzTarget> = {
   [dnsTarget.name]: dnsTarget,
@@ -11,4 +13,6 @@ export const targets: Record<string, FuzzTarget> = {
   [networkTarget.name]: networkTarget,
   [tarTarget.name]: tarTarget,
   [sshExecTarget.name]: sshExecTarget,
+  [httpConversionTarget.name]: httpConversionTarget,
+  [mountsTarget.name]: mountsTarget,
 };

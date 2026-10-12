@@ -167,6 +167,20 @@ test("http-hook-conversion: response body limit is enforced while reading", asyn
   assert.equal(getCancelled(), true);
 });
 
+test("http-hook-conversion: bodyless GET/HEAD requests materialize with allowBody", async () => {
+  // Regression: the buffered-hook branch used to reject any value carrying an
+  // arrayBuffer method, which every Request does, so a bodyless GET/HEAD
+  // failed with "request body not allowed" despite having no body at all.
+  for (const method of ["GET", "HEAD"]) {
+    const converted = await webRequestToInternalHttpRequest(
+      new Request(`https://example.com/${method.toLowerCase()}`, { method }),
+      { allowBody: true, maxBodyBytes: 16 },
+    );
+    assert.equal(converted.method, method);
+    assert.equal(converted.body, null);
+  }
+});
+
 test("http-hook-conversion: request body conversion succeeds within limit", async () => {
   const request = new Request("https://example.com/upload", {
     method: "POST",

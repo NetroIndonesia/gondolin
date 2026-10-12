@@ -12,6 +12,7 @@ export type FuzzTarget = {
    * Run a single fuzz iteration.
    *
    * Return true if the input is "interesting" and should be added to the corpus.
+   * May be async so targets can fuzz promise-returning parsers; the CLI awaits it.
    */
-  runOne: (input: Buffer, rng: XorShift32) => boolean;
+  runOne: (input: Buffer, rng: XorShift32) => boolean | Promise<boolean>;
 };
