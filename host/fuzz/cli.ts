@@ -47,35 +47,50 @@ function writeArtifact(target: string, data: Buffer): string {
  * a positive value is a bounded run suitable for CI smoke.
  * Returns the final corpus size.
  */
-function runBounded(
+async function runBounded(
   target: FuzzTarget,
   iters: number | null,
   seed: number,
   maxLen: number,
-): number {
+): Promise<number> {
   const rng = new XorShift32(seed);
   const corpus: Buffer[] = target.seeds.map((s) => Buffer.from(s));
   const maxCorpus = 1024;
+
+  const reportCrash = (err: any, input: Buffer, where: string): number => {
+    const artifact = writeArtifact(target.name, input);
+    process.stderr.write(
+      `\nFUZZ CRASH in target '${target.name}' at ${where} seed=${seed}\n`,
+    );
+    process.stderr.write(`artifact: ${artifact}\n`);
+    process.stderr.write(`error: ${String(err?.stack ?? err)}\n`);
+    process.exitCode = 1;
+    return corpus.length;
+  };
+
+  // Authored seeds run verbatim before mutation: they document intended
+  // behaviour, so a regression must fail even when the mutator never
+  // reproduces the exact input.
+  for (let s = 0; s < corpus.length; s++) {
+    try {
+      await target.runOne(corpus[s]!, rng);
+    } catch (err: any) {
+      return reportCrash(err, corpus[s]!, `seed[${s}]`);
+    }
+  }
 
   for (let i = 0; iters === null || iters === 0 || i < iters; i++) {
     const base = corpus[rng.int(0, corpus.length - 1)]!;
     const input = mutateBuffer(base, rng, { maxLen });
 
     try {
-      const interesting = target.runOne(input, rng);
+      const interesting = await target.runOne(input, rng);
       if (interesting && corpus.length < maxCorpus) {
         // Keep a copy to avoid later mutation aliasing.
         corpus.push(Buffer.from(input));
       }
     } catch (err: any) {
-      const artifact = writeArtifact(target.name, input);
-      process.stderr.write(
-        `\nFUZZ CRASH in target '${target.name}' at iter=${i} seed=${seed}\n`,
-      );
-      process.stderr.write(`artifact: ${artifact}\n`);
-      process.stderr.write(`error: ${String(err?.stack ?? err)}\n`);
-      process.exitCode = 1;
-      return corpus.length;
+      return reportCrash(err, input, `iter=${i}`);
     }
 
     if ((i + 1) % 5000 === 0) {
@@ -144,11 +159,11 @@ async function main() {
     const input = fs.readFileSync(reproFile);
     if (runAll) {
       for (const t of Object.values(targets)) {
-        t.runOne(input, new XorShift32(seed));
+        await t.runOne(input, new XorShift32(seed));
       }
       process.stderr.write(`repro OK (all targets): ${reproFile}\n`);
     } else {
-      target!.runOne(input, rng);
+      await target!.runOne(input, rng);
       process.stderr.write(`repro OK: ${reproFile}\n`);
     }
     return;
@@ -157,7 +172,7 @@ async function main() {
   if (runAll) {
     let crashed = false;
     for (const t of Object.values(targets)) {
-      runBounded(t, iters as number, seed, maxLen ?? t.defaultMaxLen);
+      await runBounded(t, iters as number, seed, maxLen ?? t.defaultMaxLen);
       if (process.exitCode) {
         crashed = true;
         break;
@@ -171,7 +186,7 @@ async function main() {
     return;
   }
 
-  runBounded(target!, iters, seed, maxLen ?? target!.defaultMaxLen);
+  await runBounded(target!, iters, seed, maxLen ?? target!.defaultMaxLen);
 }
 
 main().catch((err) => {

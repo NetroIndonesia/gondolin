@@ -181,7 +181,8 @@ export async function webRequestToInternalHttpRequest(
     body = bytes.length > 0 ? bytes : null;
   } else if (
     options.allowBody &&
-    (value.body !== null || typeof value.arrayBuffer === "function")
+    value.body !== null &&
+    value.body !== undefined
   ) {
     throw new HttpRequestBlockedError(
       `request body not allowed for ${upperMethod} in buffered request hooks`,
